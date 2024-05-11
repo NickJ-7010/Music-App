@@ -100,7 +100,7 @@ interface SearchResultsProps {
 
 function SearchResults ({ text }: SearchResultsProps) {
     const [Results, setResults]: [any[], any] = React.useState([ ]);
-
+    
 };
 
 export default Component;
