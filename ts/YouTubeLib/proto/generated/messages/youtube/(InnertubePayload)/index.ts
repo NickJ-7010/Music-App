@@ -1,0 +1,10 @@
+export type { Type as Context } from "./Context";
+export type { Type as Title } from "./Title";
+export type { Type as Description } from "./Description";
+export type { Type as Tags } from "./Tags";
+export type { Type as Privacy } from "./Privacy";
+export type { Type as Category } from "./Category";
+export type { Type as MadeForKids } from "./MadeForKids";
+export type { Type as AgeRestricted } from "./AgeRestricted";
+export type { Type as License } from "./License";
+export type { Type as VideoThumbnail } from "./VideoThumbnail";

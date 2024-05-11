@@ -1,0 +1,72 @@
+import { Log } from '../../utils/index';
+import { YTNode, type ObservedArray } from '../helpers';
+import { Parser, type RawNode } from '../index';
+import Button from './Button';
+import NavigationEndpoint from './NavigationEndpoint';
+import Text from './misc/Text';
+import Thumbnail from './misc/Thumbnail';
+
+export default class ChannelAboutFullMetadata extends YTNode {
+  static type = 'ChannelAboutFullMetadata';
+
+  id: string;
+  name: Text;
+  avatar: Thumbnail[];
+  canonical_channel_url: string;
+
+  primary_links: {
+    endpoint: NavigationEndpoint;
+    icon: Thumbnail[];
+    title: Text;
+  }[];
+
+  view_count: Text;
+  joined_date: Text;
+  description: Text;
+  email_reveal: NavigationEndpoint;
+  can_reveal_email: boolean;
+  country: Text;
+  buttons: ObservedArray<Button>;
+
+  constructor(data: RawNode) {
+    super();
+    this.id = data.channelId;
+    this.name = new Text(data.title);
+    this.avatar = Thumbnail.fromResponse(data.avatar);
+    this.canonical_channel_url = data.canonicalChannelUrl;
+
+    this.primary_links = data.primaryLinks?.map((link: any) => ({
+      endpoint: new NavigationEndpoint(link.navigationEndpoint),
+      icon: Thumbnail.fromResponse(link.icon),
+      title: new Text(link.title)
+    })) ?? [];
+
+    this.view_count = new Text(data.viewCountText);
+    this.joined_date = new Text(data.joinedDateText);
+    this.description = new Text(data.description);
+    this.email_reveal = new NavigationEndpoint(data.onBusinessEmailRevealClickCommand);
+    this.can_reveal_email = !data.signInForBusinessEmail;
+    this.country = new Text(data.country);
+    this.buttons = Parser.parseArray(data.actionButtons, Button);
+  }
+
+  /**
+   * @deprecated
+   * This will be removed in a future release.
+   * Please use {@link Channel.view_count} instead.
+   */
+  get views() {
+    Log.warnOnce(ChannelAboutFullMetadata.type, 'ChannelAboutFullMetadata#views is deprecated. Please use ChannelAboutFullMetadata#view_count instead.');
+    return this.view_count;
+  }
+
+  /**
+   * @deprecated
+   * This will be removed in a future release.
+   * Please use {@link Channel.joined_date} instead.
+   */
+  get joined(): Text {
+    Log.warnOnce(ChannelAboutFullMetadata.type, 'ChannelAboutFullMetadata#joined is deprecated. Please use ChannelAboutFullMetadata#joined_date instead.');
+    return this.joined_date;
+  }
+}
