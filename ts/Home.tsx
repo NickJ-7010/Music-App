@@ -29,7 +29,7 @@ function Content ({ navigation }: any) {
             <Image style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.75 }} source={{ uri: youtube.backgroundUrl }} />
             <LinearGradient
                 start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
-                locations={[0,0.75,1]}
+                locations={[0.25,0.75,1]}
                 colors={['rgba(3, 3, 3, 0)', 'rgba(3, 3, 3, 0.5)', 'rgba(3, 3, 3, 1)']}
                 style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 1 }}>
             </LinearGradient>

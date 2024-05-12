@@ -4,6 +4,7 @@ import {
     Keyboard,
     Pressable,
     SafeAreaView,
+    ScrollView,
     Text,
     TextInput,
     View,
@@ -61,7 +62,7 @@ function Component ({ navigation }: any) {
     } else if (text.length) {
         content =
         <Stack.Navigator initialRouteName="Results" screenOptions={{ contentStyle: { backgroundColor: "transparent" }, headerShown: false }}>
-            <Stack.Screen name="Results" children={()=><Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "#888888" }}>
+            <Stack.Screen name="Results" children={()=><Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "#888888" }}>
                 <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
             </Tab.Navigator>} />
@@ -74,7 +75,7 @@ function Component ({ navigation }: any) {
             <Image style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.75 }} source={{ uri: youtube.backgroundUrl }} />
             <LinearGradient
                 start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
-                locations={[0,0.75,1]}
+                locations={[0.25,0.75,1]}
                 colors={['rgba(3, 3, 3, 0)', 'rgba(3, 3, 3, 0.5)', 'rgba(3, 3, 3, 1)']}
                 style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 1 }}>
             </LinearGradient>
@@ -90,20 +91,20 @@ function Component ({ navigation }: any) {
                             <Path d="M560-267.69 347.69-480 560-692.31 588.31-664l-184 184 184 184L560-267.69Z" />
                         </Svg>
                     </Pressable>
-                    <View style={{ width: 16 }}></View>
-                    <TextInput
-                        style={{ color: "#ffffff", flexGrow: 1, fontSize: 16, backgroundColor: "rgba(0, 0, 0, 0.35)", paddingLeft: 10, paddingRight: 10, padding: 5, borderRadius: 50 }}
-                        placeholderTextColor={"rgba(255, 255, 255, 0.5)"}
-                        autoFocus={true}
-                        value={text} 
-                        clearButtonMode="while-editing"
-                        onChangeText={(value) => { setText(value); youtube.getSearchSuggestions(value).then((data: any) => { setSuggestions(data) }); }}
-                        onBlur={() => { setFocused(false); youtube.getSearch(text).then(data => { setResults(data); }); }}
-                        onFocus={() => setFocused(true)}
-                        placeholder="Search YouTube Music"
-                        keyboardType="web-search"
-                    />
-                    <View style={{ width: 12 }}></View>
+                    <View style={{ justifyContent: "center", backgroundColor: "rgba(0, 0, 0, 0.35)", paddingLeft: 10, paddingRight: 3, flexGrow: 1, borderRadius: 50, marginLeft: 16, marginRight: 12 }}>
+                        <TextInput
+                            style={{ color: "#ffffff", fontSize: 16, }}
+                            placeholderTextColor={"rgba(255, 255, 255, 0.5)"}
+                            autoFocus={true}
+                            value={text} 
+                            clearButtonMode="while-editing"
+                            onChangeText={(value) => { setText(value); youtube.getSearchSuggestions(value).then((data: any) => { setSuggestions(data) }); }}
+                            onBlur={() => { setFocused(false); youtube.getSearch(text).then(data => { setResults(data); }); }}
+                            onFocus={() => setFocused(true)}
+                            placeholder="Search YouTube Music"
+                            keyboardType="web-search"
+                        />
+                    </View>
                     <Pressable style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", paddingLeft: 8, paddingRight: 8, borderRadius: 32 }} onPress={() => { navigation.push("Search") }}>
                         <Svg
                             width={32}
@@ -126,11 +127,116 @@ interface SearchResultsProps {
 }
 
 function SearchResults ({ results }: SearchResultsProps) {
-    return (
-        <View style={{ height: "100%" }}>
-            <Text style={{ color: "#ffffff" }}>Text</Text>
-        </View>
-    );
+    if (results.header) {
+        return (
+            <ScrollView>
+                <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 10, marginBottom: 10 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
+                    {results.header.chips.map((chip: any) => <Pressable onPress={() => { console.log(chip.text); }} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                        <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
+                    </Pressable>)}
+                </ScrollView>
+                {results.contents.map((shelf: any) => shelf.type == "MusicShelf" ?
+                <View>
+                    <Pressable onPress={() => { console.log(shelf.title.text); }} style={{ padding: 15, flexDirection: "row", alignItems: "center" }}>
+                        <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.title.text}</Text>
+                        <View style={{ flexGrow: 1 }}></View>
+                        <View style={{ borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.25)", padding: 3, paddingLeft: 8, paddingRight: 8, borderRadius: 50 }}><Text style={{ color: "#ffffff", fontWeight: 600 }}>More</Text></View>
+                    </Pressable>
+                    {shelf.contents.map((item: any) => <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
+                        <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
+                        <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                            <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
+                            <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                        </View>
+                        <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                            <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                                <Svg
+                                    width={24}
+                                    height={24}
+                                    viewBox='0 -960 960 960'
+                                    fill={"#ffffff"}>
+                                    <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                                </Svg>
+                            </View>
+                        </Pressable>
+                    </View>)}
+                </View> :
+                <View>
+                    <View style={{ padding: 15 }}>
+                        <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.header.title.text}</Text>
+                    </View>
+                    <View style={{ marginLeft: 15, marginRight: 15, backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 5 }}>
+                        {((content: any) => { return shelf.contents ? <>
+                            <View style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: 5 }}>{content}</View>
+                            <View style={{ padding: 15, paddingTop: 0, paddingRight: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, marginTop: 15 }}>{item.text.text}</Text> :
+                                <View style={{ marginTop: 15, flexDirection: "row", alignItems: "center" }}>
+                                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
+                                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                                </View>
+                                <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                                        <Svg
+                                            width={24}
+                                            height={24}
+                                            viewBox='0 -960 960 960'
+                                            fill={"#ffffff"}>
+                                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                                        </Svg>
+                                    </View>
+                                </Pressable>
+                            </View>)}</View>
+                        </> : content })(
+                        <View style={{ padding: 15, paddingRight: 10 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
+                                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{shelf.title.text}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{shelf.subtitle.text}</Text>
+                                </View>
+                                <Pressable onPress={() => { console.log(shelf.title.text); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                                        <Svg
+                                            width={24}
+                                            height={24}
+                                            viewBox='0 -960 960 960'
+                                            fill={"#ffffff"}>
+                                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                                        </Svg>
+                                    </View>
+                                </Pressable>
+                            </View>
+                            <View style={{ flexDirection: "row", marginTop: 15, marginRight: 5 }}>
+                                <Pressable style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, alignItems: "center" }}>
+                                    <Text style={{ fontWeight: 700 }}>{shelf.buttons[0].text}</Text>
+                                </Pressable>
+                                <View style={{ width: 15 }}></View>
+                                <Pressable style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, alignItems: "center" }}>
+                                    <Text style={{ color: "#ffffff", fontWeight: 700 }}>{shelf.buttons[1].text}</Text>
+                                </Pressable>
+                            </View>
+                        </View>)}
+                    </View>
+                </View>)}
+            </ScrollView>
+        );
+    } else {
+        return (
+            <View style={{ height: "100%", alignItems: "center" }}>
+                <View style={{ flexGrow: 1 }}></View>
+                <Svg
+                    width={52}
+                    height={52}
+                    viewBox='0 0 24 24'
+                    fill={"rgba(255, 255, 255, 0.75)"}>
+                    <Path d="m20.87 20.17-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
+                </Svg>
+                <Text style={{ marginTop: 10, color: "rgba(255, 255, 255, 0.75)", fontSize: 16, fontWeight: 400 }}>No Results found</Text>
+                <View style={{ flexGrow: 5 }}></View>
+            </View>
+        );
+    }
 }
 
 interface MoreResultsProps {
@@ -151,10 +257,19 @@ interface LibraryResultsProps {
 function LibraryResults ({ text }: LibraryResultsProps) {
     const [results, setResults]: [any, any] = React.useState({ });
     
-    console.log('text')
-
     return (
-        <View style={{ height: "100%" }}><Text style={{ color: "#ffffff" }}>{text}</Text></View>
+        <View style={{ height: "100%", alignItems: "center" }}>
+            <View style={{ flexGrow: 1 }}></View>
+            <Svg
+                width={52}
+                height={52}
+                viewBox='0 0 24 24'
+                fill={"rgba(255, 255, 255, 0.75)"}>
+                <Path d="m20.87 20.17-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
+            </Svg>
+            <Text style={{ marginTop: 10, color: "rgba(255, 255, 255, 0.75)", fontSize: 16, fontWeight: 400 }}>No Results found</Text>
+            <View style={{ flexGrow: 5 }}></View>
+        </View>
     );
 }
 
