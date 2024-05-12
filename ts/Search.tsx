@@ -62,7 +62,7 @@ function Component ({ navigation }: any) {
     } else if (text.length) {
         content =
         <Stack.Navigator initialRouteName="Results" screenOptions={{ contentStyle: { backgroundColor: "transparent" }, headerShown: false }}>
-            <Stack.Screen name="Results" children={()=><Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "#888888" }}>
+            <Stack.Screen name="Results" children={()=><Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)" }}>
                 <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
             </Tab.Navigator>} />
