@@ -12,7 +12,7 @@ class YoutubeManager {
     constructor() {
         this.awaitCallbacks = [];
 
-        Innertube.create({ fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        Innertube.create({ fetch: async (input: any, init?: RequestInit) => {
             //@ts-ignore
             return fetch(input.url ?? input, { ...init, method: input.method, reactNative: { textStreaming: true } });
         } }).then(val => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    FlatList,
     Image,
     Keyboard,
     Pressable,
@@ -32,7 +33,7 @@ function Component ({ navigation }: any) {
         if (suggestions.length) {
             content =
             <View>
-                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then(setSuggestions); if (text.length) youtube.getSearch(text).then(setResults); setFocused(false); }}>
+                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setFilter(''); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then(setSuggestions); if (text.length) youtube.getSearch(text).then(setResults); setFocused(false); }}>
                     <Svg
                         width={24}
                         height={24}
@@ -41,7 +42,7 @@ function Component ({ navigation }: any) {
                         fill={"#ffffff"}>
                         <Path d="m20.87 20.17-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
                     </Svg>
-                    {item.suggestion.runs.map((run: any) => <Text key={run.text} style={{ color: "#ffffff", fontSize: 16, fontWeight: run.bold ? "bold" : "regular" }}>{run.text}</Text>)}
+                    {item.suggestion.runs.map((run: any) => <Text key={run.text + item.suggestion.text} style={{ color: "#ffffff", fontSize: 16, fontWeight: run.bold ? "bold" : "regular" }}>{run.text}</Text>)}
                     <View style={{ flexGrow: 1 }}></View>
                     <Svg
                         width={24}
@@ -98,7 +99,8 @@ function Component ({ navigation }: any) {
                             value={text} 
                             clearButtonMode="while-editing"
                             onChangeText={(value) => { setText(value); youtube.getSearchSuggestions(value).then(setSuggestions); }}
-                            onBlur={() => { setFocused(false); if (text.length) youtube.getSearch(text).then(setResults); }}
+                            onSubmitEditing={() => { if (text.length) { setFilter(""); youtube.getSearch(text).then(setResults); } }}
+                            onBlur={() => setFocused(false)}
                             onFocus={() => setFocused(true)}
                             placeholder="Search YouTube Music"
                             keyboardType="web-search"
@@ -130,19 +132,19 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
     if (results.header) {
         return (
             <ScrollView>
-                <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 10, marginBottom: 10 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
-                    {results.header.chips.map((chip: any) => <Pressable onPress={() => applyFilter(chip.text)} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                <ScrollView horizontal={true} style={{ padding: 10, paddingBottom: 0 }} contentContainerStyle={{ paddingRight: 20 }} showsHorizontalScrollIndicator={false}>
+                    {results.header.chips.map((chip: any) => <Pressable key={chip.text} onPress={() => applyFilter(chip.text)} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
                         <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
                     </Pressable>)}
                 </ScrollView>
                 {results.contents.map((shelf: any) => shelf.type == "MusicShelf" ?
-                <View>
+                <View key={shelf.title.text}>
                     <Pressable onPress={() => applyFilter(shelf.title.text)} style={{ padding: 15, flexDirection: "row", alignItems: "center" }}>
                         <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.title.text}</Text>
                         <View style={{ flexGrow: 1 }}></View>
                         <View style={{ borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.25)", padding: 3, paddingLeft: 8, paddingRight: 8, borderRadius: 50 }}><Text style={{ color: "#ffffff", fontWeight: 600 }}>More</Text></View>
                     </Pressable>
-                    {shelf.contents.map((item: any) => <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
+                    {shelf.contents.map((item: any) => <View key={item.id} style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
                         <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
                         <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                             <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
@@ -161,14 +163,14 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                         </Pressable>
                     </View>)}
                 </View> :
-                <View>
+                <View key={shelf.title.text}>
                     <View style={{ padding: 15 }}>
                         <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.header.title.text}</Text>
                     </View>
                     <View style={{ marginLeft: 15, marginRight: 15, backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 5 }}>
                         {((content: any) => { return shelf.contents ? <>
                             <View style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: 5 }}>{content}</View>
-                            <View style={{ padding: 15, paddingTop: 0, paddingRight: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, marginTop: 15 }}>{item.text.text}</Text> :
+                            <View style={{ padding: 15, paddingTop: 0, paddingRight: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text key={item.text.text} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, marginTop: 15 }}>{item.text.text}</Text> :
                                 <View style={{ marginTop: 15, flexDirection: "row", alignItems: "center" }}>
                                 <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
@@ -241,18 +243,18 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
 
 interface MoreResultsProps {
     startingResults: any;
-    filter: String;
+    filter: string;
     applyFilter: Function
 }
 
 function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps) {
-    const [results, setResults]: [any, any] = React.useState(null);
-    const [array, setArray]: [any[], any] = React.useState([]);
+    const [state, setState]: [{ results: any, contents: any[], currentFilter: string }, any] = React.useState({ results: null, contents: [], currentFilter: filter });
+    const [loading, setLoading] = React.useState(true);
 
-    if (!results) {
+    if (!state.results || state.currentFilter != filter) {
         startingResults.getMore(startingResults.contents.find((shelf: any) => shelf.title.text == filter)).then((data: any) => {
-            setArray(array.concat(data.contents[0].contents));
-            setResults(data);
+            setState({ results: data, contents: data.contents[0].contents, currentFilter: filter });
+            setLoading(false);
         });
         
         return (
@@ -272,24 +274,9 @@ function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps
     }
 
     return (
-        <ScrollView>
-            <View style={{ flexDirection: "row" }}>
-                <Pressable onPress={() => applyFilter("")} style={{ margin: 10, marginRight: 5, padding: 5, justifyContent: "center", backgroundColor: "#ffffff", borderColor: "#ffffff", borderWidth: 1, borderRadius: 7.5 }}>
-                    <Svg
-                        width={28}
-                        height={28}
-                        viewBox='0 0 24 24'
-                        fill={"#000000"}>
-                        <Path d="M12.7,12l6.6,6.6l-0.7,0.7L12,12.7l-6.6,6.6l-0.7-0.7l6.6-6.6L4.6,5.4l0.7-0.7l6.6,6.6l6.6-6.6l0.7,0.7L12.7,12z" />
-                    </Svg>
-                </Pressable>
-                <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 0 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
-                    {startingResults.header.chips.map((chip: any) => <Pressable onPress={() => applyFilter(chip.text == filter ? "" : chip.text)} style={{ margin: 5, backgroundColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.1)", borderColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
-                        <Text style={{ color: chip.text == filter ? "#000000" : "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
-                    </Pressable>)}
-                </ScrollView>
-            </View>
-            {array.map((item: any) => <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
+        <FlatList
+            data={state.contents}
+            renderItem={({ item }) => <View key={item.id} style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
                 <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
@@ -306,11 +293,27 @@ function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps
                         </Svg>
                     </View>
                 </Pressable>
-            </View>)}
-            <Pressable onPress={() => results.getContinuation().then((data: any) => { setResults(data); setArray(array.concat(data.contents.contents)); })} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
-                <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>Load More</Text>
-            </Pressable>
-        </ScrollView>
+            </View>}
+            ListHeaderComponent={<View style={{ flexDirection: "row" }}>
+                <Pressable onPress={() => applyFilter("")} style={{ margin: 10, marginRight: 5, padding: 5, justifyContent: "center", backgroundColor: "#ffffff", borderColor: "#ffffff", borderWidth: 1, borderRadius: 7.5 }}>
+                    <Svg
+                        width={28}
+                        height={28}
+                        viewBox='0 0 24 24'
+                        fill={"#000000"}>
+                        <Path d="M12.7,12l6.6,6.6l-0.7,0.7L12,12.7l-6.6,6.6l-0.7-0.7l6.6-6.6L4.6,5.4l0.7-0.7l6.6,6.6l6.6-6.6l0.7,0.7L12.7,12z" />
+                    </Svg>
+                </Pressable>
+                <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 0 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
+                    {startingResults.header.chips.map((chip: any) => <Pressable key={chip.text} onPress={() => applyFilter(chip.text == filter ? "" : chip.text)} style={{ margin: 5, backgroundColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.1)", borderColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                        <Text style={{ color: chip.text == filter ? "#000000" : "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
+                    </Pressable>)}
+                </ScrollView>
+            </View>}
+            keyExtractor={(item) => item.id}
+            onEndReached={() => { if (!loading) { setLoading(true); state.results.getContinuation().then((data: any) => { setState({ results: data, contents: state.contents.concat(data.contents.contents), currentFilter: state.currentFilter }); setLoading(false); }); }}}
+            onEndReachedThreshold={0.8}
+        />
     );
 }
 
