@@ -19,7 +19,7 @@ function Component ({ children }: any) {
                 barStyle={true ? 'light-content' : 'dark-content'}
                 backgroundColor={backgroundStyle.backgroundColor}
             />
-            <Stack.Navigator initialRouteName="Default" screenOptions={{ headerShown: false }}>
+            <Stack.Navigator initialRouteName="Default" screenOptions={{ animation: "fade_from_bottom", headerShown: false }}>
                 <Stack.Screen name="Default" component={children} />
                 <Stack.Screen name="Search" component={Search} />
             </Stack.Navigator>

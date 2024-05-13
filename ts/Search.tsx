@@ -12,18 +12,16 @@ import {
 import youtube from './YouTube'
 import Svg, { Path } from 'react-native-svg';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const Stack = createNativeStackNavigator();
 const Tab = createMaterialTopTabNavigator();
 
 function Component ({ navigation }: any) {
     const [focused, setFocused] = React.useState(true);
     const [suggestions, setSuggestions]: [any[], any] = React.useState([ ]);
     const [results, setResults]: [any, any] = React.useState({ });
-    const [more, setMore] = React.useState('');
+    const [filter, setFilter] = React.useState('');
     const [text, setText] = React.useState('');
 
     const safeAreaInsets = useSafeAreaInsets();
@@ -34,7 +32,7 @@ function Component ({ navigation }: any) {
         if (suggestions.length) {
             content =
             <View>
-                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then((data: any) => { setSuggestions(data) }); youtube.getSearch(text).then(data => { setResults(data); }); setFocused(false); }}>
+                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then(setSuggestions); if (text.length) youtube.getSearch(text).then(setResults); setFocused(false); }}>
                     <Svg
                         width={24}
                         height={24}
@@ -54,20 +52,21 @@ function Component ({ navigation }: any) {
                         <Path d="m712.46-268.46-404-403.23V-300h-40v-440h440v40H336.77L740-296l-27.54 27.54Z" />
                     </Svg>
                 </Pressable>)}
-                <Pressable style={{ height: "100%" }} onPress={() => { Keyboard.dismiss(); }}></Pressable>
+                <Pressable style={{ height: "100%" }} onPress={() => Keyboard.dismiss()}></Pressable>
             </View>
         } else {
-            content = <Pressable style={{ height: "100%" }} onPress={() => { navigation.pop(); }}></Pressable>
+            content = <Pressable style={{ height: "100%" }} onPress={() => navigation.pop()}></Pressable>
         }
     } else if (text.length) {
-        content =
-        <Stack.Navigator initialRouteName="Results" screenOptions={{ contentStyle: { backgroundColor: "transparent" }, headerShown: false }}>
-            <Stack.Screen name="Results" children={()=><Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)" }}>
-                <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} />} />
+        if (!filter.length) {
+            content =
+            <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)" }}>
+                <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} applyFilter={setFilter} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
-            </Tab.Navigator>} />
-            <Stack.Screen name="MoreResults" children={()=><SearchResults results={results} />} />
-        </Stack.Navigator>
+            </Tab.Navigator>
+        } else {
+            content = <MoreResults startingResults={results} filter={filter} applyFilter={setFilter} />
+        }
     }
 
     return (
@@ -82,7 +81,7 @@ function Component ({ navigation }: any) {
             <SafeAreaView style={{ paddingTop: safeAreaInsets.top }}>
                 <View style={{ flexDirection: "row", marginBottom: 20 }}>
                     <View style={{ width: 8 }}></View>
-                    <Pressable onPress={() => { navigation.pop() }}>
+                    <Pressable onPress={() => navigation.pop()}>
                         <Svg
                             width={32}
                             height={32}
@@ -98,8 +97,8 @@ function Component ({ navigation }: any) {
                             autoFocus={true}
                             value={text} 
                             clearButtonMode="while-editing"
-                            onChangeText={(value) => { setText(value); youtube.getSearchSuggestions(value).then((data: any) => { setSuggestions(data) }); }}
-                            onBlur={() => { setFocused(false); youtube.getSearch(text).then(data => { setResults(data); }); }}
+                            onChangeText={(value) => { setText(value); youtube.getSearchSuggestions(value).then(setSuggestions); }}
+                            onBlur={() => { setFocused(false); if (text.length) youtube.getSearch(text).then(setResults); }}
                             onFocus={() => setFocused(true)}
                             placeholder="Search YouTube Music"
                             keyboardType="web-search"
@@ -123,21 +122,22 @@ function Component ({ navigation }: any) {
 }
 
 interface SearchResultsProps {
-    results: any
+    results: any;
+    applyFilter: Function;
 }
 
-function SearchResults ({ results }: SearchResultsProps) {
+function SearchResults ({ results, applyFilter }: SearchResultsProps) {
     if (results.header) {
         return (
             <ScrollView>
                 <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 10, marginBottom: 10 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
-                    {results.header.chips.map((chip: any) => <Pressable onPress={() => { console.log(chip.text); }} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                    {results.header.chips.map((chip: any) => <Pressable onPress={() => applyFilter(chip.text)} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
                         <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
                     </Pressable>)}
                 </ScrollView>
                 {results.contents.map((shelf: any) => shelf.type == "MusicShelf" ?
                 <View>
-                    <Pressable onPress={() => { console.log(shelf.title.text); }} style={{ padding: 15, flexDirection: "row", alignItems: "center" }}>
+                    <Pressable onPress={() => applyFilter(shelf.title.text)} style={{ padding: 15, flexDirection: "row", alignItems: "center" }}>
                         <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.title.text}</Text>
                         <View style={{ flexGrow: 1 }}></View>
                         <View style={{ borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.25)", padding: 3, paddingLeft: 8, paddingRight: 8, borderRadius: 50 }}><Text style={{ color: "#ffffff", fontWeight: 600 }}>More</Text></View>
@@ -240,18 +240,82 @@ function SearchResults ({ results }: SearchResultsProps) {
 }
 
 interface MoreResultsProps {
-    results: any,
-    
+    startingResults: any;
+    filter: String;
+    applyFilter: Function
 }
 
-function MoreResults ({ results }: MoreResultsProps) {
+function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps) {
+    const [results, setResults]: [any, any] = React.useState(null);
+    const [array, setArray]: [any[], any] = React.useState([]);
+
+    if (!results) {
+        startingResults.getMore(startingResults.contents.find((shelf: any) => shelf.title.text == filter)).then((data: any) => {
+            setArray(array.concat(data.contents[0].contents));
+            setResults(data);
+        });
+        
+        return (
+            <View style={{ height: "100%", alignItems: "center" }}>
+                <View style={{ flexGrow: 1 }}></View>
+                <Svg
+                    width={52}
+                    height={52}
+                    viewBox='0 0 24 24'
+                    fill={"rgba(255, 255, 255, 0.75)"}>
+                    <Path d="m20.87 20.17-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
+                </Svg>
+                <Text style={{ marginTop: 10, color: "rgba(255, 255, 255, 0.75)", fontSize: 16, fontWeight: 400 }}>No Results found</Text>
+                <View style={{ flexGrow: 5 }}></View>
+            </View>
+        );
+    }
+
     return (
-        <View style={{ height: "100%" }}><Text style={{ color: "#ffffff" }}>Text</Text></View>
+        <ScrollView>
+            <View style={{ flexDirection: "row" }}>
+                <Pressable onPress={() => applyFilter("")} style={{ margin: 10, marginRight: 5, padding: 5, justifyContent: "center", backgroundColor: "#ffffff", borderColor: "#ffffff", borderWidth: 1, borderRadius: 7.5 }}>
+                    <Svg
+                        width={28}
+                        height={28}
+                        viewBox='0 0 24 24'
+                        fill={"#000000"}>
+                        <Path d="M12.7,12l6.6,6.6l-0.7,0.7L12,12.7l-6.6,6.6l-0.7-0.7l6.6-6.6L4.6,5.4l0.7-0.7l6.6,6.6l6.6-6.6l0.7,0.7L12.7,12z" />
+                    </Svg>
+                </Pressable>
+                <ScrollView horizontal={true} style={{ padding: 5, paddingLeft: 0 }} contentContainerStyle={{ paddingRight: 15 }} showsHorizontalScrollIndicator={false}>
+                    {startingResults.header.chips.map((chip: any) => <Pressable onPress={() => applyFilter(chip.text == filter ? "" : chip.text)} style={{ margin: 5, backgroundColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.1)", borderColor: chip.text == filter ? "#ffffff" : "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                        <Text style={{ color: chip.text == filter ? "#000000" : "#ffffff", fontSize: 16, fontWeight: 600 }}>{chip.text}</Text>
+                    </Pressable>)}
+                </ScrollView>
+            </View>
+            {array.map((item: any) => <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
+                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
+                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
+                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                </View>
+                <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                        <Svg
+                            width={24}
+                            height={24}
+                            viewBox='0 -960 960 960'
+                            fill={"#ffffff"}>
+                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                        </Svg>
+                    </View>
+                </Pressable>
+            </View>)}
+            <Pressable onPress={() => results.getContinuation().then((data: any) => { setResults(data); setArray(array.concat(data.contents.contents)); })} style={{ margin: 5, backgroundColor: "rgba(255, 255, 255, 0.1)", borderColor: "rgba(255, 255, 255, 0.125)", borderWidth: 1, borderRadius: 7.5, padding: 10, paddingLeft: 15, paddingRight: 15 }}>
+                <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>Load More</Text>
+            </Pressable>
+        </ScrollView>
     );
 }
 
 interface LibraryResultsProps {
-    text: string
+    text: string;
 }
 
 function LibraryResults ({ text }: LibraryResultsProps) {
