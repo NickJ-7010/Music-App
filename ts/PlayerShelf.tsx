@@ -1,30 +1,23 @@
-import React from "react";
-import { View, Text, Pressable, Alert, Dimensions } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Pressable, Alert, Dimensions, StyleSheet } from "react-native";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle, SharedValue } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import { NavigationContainer, TabActions, TabRouter, useNavigationBuilder } from "@react-navigation/native";
+
+const { height } = Dimensions.get('screen');
+
+const snapPoints = [0, height, height * 2 - 110];
+
+const Tab = createMaterialTopTabNavigator();
 
 interface PlayerShelfProps {
     bottomTabBar: React.ReactNode;
 }
 
-const snapPoint = (
-    value: number,
-    velocity: number,
-    points: ReadonlyArray<number>
-): number => {
-    "worklet";
-    const point = value + 0.5 * velocity;
-    const deltas = points.map((p) => Math.abs(point - p));
-    const minDelta = Math.min.apply(null, deltas);
-    return points.filter((p) => Math.abs(point - p) === minDelta)[0];
-};
-
-const { height, width } = Dimensions.get('screen');
-
-const snapPointsY = [0, height];
-
 function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
+    const [page, setPage] = useState(0);
     const state = useSharedValue<number>(0);
     const offset = useSharedValue<number>(0);
     const init = useSharedValue<number>(0);
@@ -34,28 +27,37 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
             init.value = offset.value;
         })
         .onChange((event) => {
-            console.log((height - 68) / height * offset.value + 68 + " " + height);
-            offset.value = init.value + -event.translationY;
+            offset.value = Math.min(Math.max(init.value + -event.translationY, snapPoints[0]), snapPoints[2]);
         })
         .onFinalize(({ velocityY }) => {
-            const snapPointY = snapPoint(offset.value, -velocityY, snapPointsY);
+            const points = state.value ? state.value == 2 ? [snapPoints[1], snapPoints[2]] : snapPoints : [snapPoints[0], snapPoints[1]];
+            const point = offset.value + 0.5 * -velocityY;
 
-            state.value = 0;
-            offset.value = withSpring(snapPointY, { overshootClamping: true });
-            //console.log(offset.value);
+            const deltas = points.map((p) => Math.abs(point - p));
+            const minDelta = Math.min.apply(null, deltas);
+
+            const snapPoint = points.filter((p) => Math.abs(point - p) === minDelta)[0];
+
+            state.value = snapPoint ? snapPoint == height ? 1 : 2 : 0;
+            offset.value = withSpring(snapPoint, { overshootClamping: true });
         });
+
+    const interpolate = (start: number, end: number, pos: number): number => {
+        "worklet";
+        return Math.round(Math.min(Math.max((1 - pos) * start + pos * end, Math.min(start, end)), Math.max(start, end)));
+    };
 
     const style = useAnimatedStyle(() => ({
         position: "absolute",
         width: "100%",
-        bottom: 0,
-        backgroundColor: `rgb(0, ${Math.round(offset.value / height * 200)}, 255)`,
-        height: (height - 68) / height * offset.value + 68
+        bottom: -76, // 76 is the current estimate of the TabBar height, no better way to get height :/
+        backgroundColor: `rgb(${interpolate(31, 18, offset.value / height)}, ${interpolate(31, 38, offset.value / height)}, ${interpolate(31, 51, offset.value / height)})`,
+        height: Math.min((height - 144) / height * offset.value + 144, height)
     }));
 
     const shelfStyle = useAnimatedStyle(() => ({
-        backgroundColor: "rgba(0, 255, 0, 0.5)",
-        transform: [{ translateY: height - 155 }],
+        backgroundColor: "#244D65",
+        transform: [{ translateY: offset.value / height > 1 ? height - (height - 100) / height * (offset.value - height) - 155 : height - 155 }],
         width: "100%",
         height: height - 110,
         borderTopStartRadius: 15,
@@ -64,8 +66,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 
     const tabBarStyle = useAnimatedStyle(() => ({
         opacity: offset.value / height < 1 ? 1 - offset.value / height : 1,
-        maxHeight: offset.value / height >= 1 ? 0 : 100,
-        transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 100 : 100 }]
+        transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 76  : 76 }]
     }));
 
     return (
@@ -95,7 +96,16 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 </Svg>
                             </Pressable>
                         </View>
-                        <Animated.View style={shelfStyle}></Animated.View>
+                        <Animated.View style={shelfStyle}>
+                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.25)", width: 35, height: 5, borderRadius: 5 }}></View></View>
+                            <NavigationContainer independent={true}>
+                                <TabNavigator sceneContainerStyle={{ backgroundColor: "transparent" }} initialRouteName={["UP NEXT", "LYRICS", "RELATED"][page]} tabBar={() => <></>} screenOptions={{ swipeEnabled: false }}>
+                                    <Tab.Screen name="UP NEXT" children={()=><UpNextComponent />} />
+                                    <Tab.Screen name="LYRICS" children={()=><LyricsComponent />} />
+                                    <Tab.Screen name="RELATED" children={()=><RelatedComponent />} />
+                                </TabNavigator>
+                            </NavigationContainer>
+                        </Animated.View>
                     </Animated.View>
                 </View>
             </GestureDetector>
@@ -103,6 +113,57 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                 {bottomTabBar}
             </Animated.View>
         </GestureHandlerRootView>
+    );
+}
+
+function TabNavigator({
+    initialRouteName,
+    children,
+    screenOptions,
+    tabBarStyle,
+    contentStyle,
+}: any) {
+    const { state, navigation, descriptors, NavigationContent } = useNavigationBuilder(TabRouter, {
+        children,
+        screenOptions,
+        initialRouteName,
+    });
+
+    return (
+        <NavigationContent>
+            <View style={[{ flex: 1 }, contentStyle]}>
+                {state.routes.map((route: any, i: any) => {
+                    return (
+                        <View
+                            key={route.key}
+                            style={[
+                                StyleSheet.absoluteFill,
+                                { display: i === state.index ? 'flex' : 'none' },
+                            ]}>
+                            {descriptors[route.key].render()}
+                        </View>
+                    );
+                })}
+            </View>
+        </NavigationContent>
+    );
+}
+
+function UpNextComponent () {
+    return (
+        <View><Text>UP NEXT</Text></View>
+    );
+}
+
+function LyricsComponent () {
+    return (
+        <View><Text>LYRICS</Text></View>
+    );
+}
+
+function RelatedComponent () {
+    return (
+        <View><Text>RELATED</Text></View>
     );
 }
 

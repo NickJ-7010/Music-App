@@ -33,7 +33,7 @@ function Component ({ navigation }: any) {
         if (suggestions.length) {
             content =
             <View>
-                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setFilter(''); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then(setSuggestions); if (text.length) youtube.getSearch(text).then(setResults); setFocused(false); }}>
+                {suggestions[0].contents.map((item: any) => <Pressable key={item.suggestion.text} style={{ alignItems: "center", padding: 10, flexDirection: "row" }} onPress={() => { Keyboard.dismiss(); setFilter(''); setText(item.endpoint.payload.query); youtube.getSearchSuggestions(item.endpoint.payload.query).then(setSuggestions); if (text.length) youtube.getSearch(item.endpoint.payload.query).then(setResults); setFocused(false); }}>
                     <Svg
                         width={24}
                         height={24}
@@ -61,7 +61,7 @@ function Component ({ navigation }: any) {
     } else if (text.length) {
         if (!filter.length) {
             content =
-            <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)" }}>
+            <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent" }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
                 <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} applyFilter={setFilter} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
             </Tab.Navigator>
