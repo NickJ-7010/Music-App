@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Alert, Dimensions, StyleSheet } from "react-native";
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { View, Text, Pressable, Alert, Dimensions } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle, SharedValue } from "react-native-reanimated";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
-import { NavigationContainer, TabActions, TabRouter, useNavigationBuilder } from "@react-navigation/native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
 const { height } = Dimensions.get('screen');
 
 const snapPoints = [0, height, height * 2 - 110];
-
+ 
 const Tab = createMaterialTopTabNavigator();
 
 interface PlayerShelfProps {
@@ -39,7 +39,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
             const snapPoint = points.filter((p) => Math.abs(point - p) === minDelta)[0];
 
             state.value = snapPoint ? snapPoint == height ? 1 : 2 : 0;
-            offset.value = withSpring(snapPoint, { overshootClamping: true });
+            offset.value = withSpring(snapPoint, { mass: 0.25, overshootClamping: true });
         });
 
     const interpolate = (start: number, end: number, pos: number): number => {
@@ -67,6 +67,11 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     const tabBarStyle = useAnimatedStyle(() => ({
         opacity: offset.value / height < 1 ? 1 - offset.value / height : 1,
         transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 76  : 76 }]
+    }));
+
+    const shelfContentStyle = useAnimatedStyle(() => ({
+        flexGrow: 1,
+        opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
     return (
@@ -97,13 +102,13 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                             </Pressable>
                         </View>
                         <Animated.View style={shelfStyle}>
-                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.25)", width: 35, height: 5, borderRadius: 5 }}></View></View>
+                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></View>
                             <NavigationContainer independent={true}>
-                                <TabNavigator sceneContainerStyle={{ backgroundColor: "transparent" }} initialRouteName={["UP NEXT", "LYRICS", "RELATED"][page]} tabBar={() => <></>} screenOptions={{ swipeEnabled: false }}>
-                                    <Tab.Screen name="UP NEXT" children={()=><UpNextComponent />} />
-                                    <Tab.Screen name="LYRICS" children={()=><LyricsComponent />} />
-                                    <Tab.Screen name="RELATED" children={()=><RelatedComponent />} />
-                                </TabNavigator>
+                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.15)", borderBottomWidth: 1, marginLeft: 15, marginRight: 15 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+                                    <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent /></Animated.View>} />
+                                    <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
+                                    <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
+                                </Tab.Navigator>
                             </NavigationContainer>
                         </Animated.View>
                     </Animated.View>
@@ -113,39 +118,6 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                 {bottomTabBar}
             </Animated.View>
         </GestureHandlerRootView>
-    );
-}
-
-function TabNavigator({
-    initialRouteName,
-    children,
-    screenOptions,
-    tabBarStyle,
-    contentStyle,
-}: any) {
-    const { state, navigation, descriptors, NavigationContent } = useNavigationBuilder(TabRouter, {
-        children,
-        screenOptions,
-        initialRouteName,
-    });
-
-    return (
-        <NavigationContent>
-            <View style={[{ flex: 1 }, contentStyle]}>
-                {state.routes.map((route: any, i: any) => {
-                    return (
-                        <View
-                            key={route.key}
-                            style={[
-                                StyleSheet.absoluteFill,
-                                { display: i === state.index ? 'flex' : 'none' },
-                            ]}>
-                            {descriptors[route.key].render()}
-                        </View>
-                    );
-                })}
-            </View>
-        </NavigationContent>
     );
 }
 
