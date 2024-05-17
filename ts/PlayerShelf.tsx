@@ -5,12 +5,13 @@ import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-na
 import Svg, { Path } from "react-native-svg";
 import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { TabBarTop } from "./AnimatedTabs";
 
 const { height } = Dimensions.get('screen');
 
 const snapPoints = [0, height, height * 2 - 110];
  
-const Tab = createMaterialTopTabNavigator();
+const Tab: any = createMaterialTopTabNavigator();
 
 interface PlayerShelfProps {
     bottomTabBar: React.ReactNode;
@@ -69,6 +70,16 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 76  : 76 }]
     }));
 
+    const indicatorStyle = useAnimatedStyle(() => ({
+        position: 'absolute',
+        left: 0,
+        bottom: 0,
+        right: 0,
+        height: 2,
+        opacity: Math.max((offset.value - height) / (height - 110), 0)
+    }));
+
+
     const shelfContentStyle = useAnimatedStyle(() => ({
         flexGrow: 1,
         opacity: Math.max((offset.value - height) / (height - 110), 0)
@@ -102,9 +113,9 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                             </Pressable>
                         </View>
                         <Animated.View style={shelfStyle}>
-                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></View>
+                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10, paddingBottom: 5 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></View>
                             <NavigationContainer independent={true}>
-                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.15)", borderBottomWidth: 1, marginLeft: 15, marginRight: 15 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={TabBarTop} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, indicatorStyle: indicatorStyle, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.0)", borderBottomWidth: 1, marginLeft: 15, marginRight: 15 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
                                     <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent /></Animated.View>} />
                                     <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
                                     <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
