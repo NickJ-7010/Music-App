@@ -36,7 +36,7 @@ export function TabBarTop({
             android_ripple={focusedOptions.tabBarAndroidRipple}
             indicatorContainerStyle={focusedOptions.tabBarIndicatorContainerStyle}
             contentContainerStyle={focusedOptions.tabBarContentContainerStyle}
-            style={[{ backgroundColor: "red" }, focusedOptions.tabBarStyle]} // Should be transparent
+            style={[{ backgroundColor: "transparent" }, focusedOptions.tabBarStyle]}
             getAccessibilityLabel={({ route }: any) =>
                 descriptors[route.key].options.tabBarAccessibilityLabel
             }
@@ -47,6 +47,8 @@ export function TabBarTop({
                     target: route.key,
                     canPreventDefault: true,
                 });
+
+                focusedOptions.onPress();
               
                 if (event.defaultPrevented) {
                     preventDefault();

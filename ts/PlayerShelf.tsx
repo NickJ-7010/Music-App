@@ -7,7 +7,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
 
-const { height } = Dimensions.get('screen');
+const { height, width } = Dimensions.get('screen');
 
 const snapPoints = [0, height, height * 2 - 110];
  
@@ -18,7 +18,7 @@ interface PlayerShelfProps {
 }
 
 function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
-    const [page, setPage] = useState(0);
+    const last = useSharedValue<number>(0); 
     const state = useSharedValue<number>(0);
     const offset = useSharedValue<number>(0);
     const init = useSharedValue<number>(0);
@@ -32,12 +32,14 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         })
         .onFinalize(({ velocityY }) => {
             const points = state.value ? state.value == 2 ? [snapPoints[1], snapPoints[2]] : snapPoints : [snapPoints[0], snapPoints[1]];
-            const point = offset.value + 0.5 * -velocityY;
+            const point = offset.value + -velocityY;
 
             const deltas = points.map((p) => Math.abs(point - p));
             const minDelta = Math.min.apply(null, deltas);
 
             const snapPoint = points.filter((p) => Math.abs(point - p) === minDelta)[0];
+
+            if (Date.now() - last.value < 100) return;
 
             state.value = snapPoint ? snapPoint == height ? 1 : 2 : 0;
             offset.value = withSpring(snapPoint, { mass: 0.25, overshootClamping: true });
@@ -58,7 +60,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 
     const shelfStyle = useAnimatedStyle(() => ({
         backgroundColor: "#244D65",
-        transform: [{ translateY: offset.value / height > 1 ? height - (height - 100) / height * (offset.value - height) - 155 : height - 155 }],
+        transform: [{ translateY: offset.value / height > 1 ? - (height - 52) / height * (offset.value - height) : 0 }],
         width: "100%",
         height: height - 110,
         borderTopStartRadius: 15,
@@ -85,37 +87,152 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
+    const topTabsStyle = useAnimatedStyle(() => ({
+        paddingTop: 1,
+        borderBottomColor: `rgba(255, 255, 255, ${Math.max((offset.value - height) / (height - 110) * 0.15, 0)})`,
+        borderBottomWidth: 1,
+        marginLeft: 15,
+        marginRight: 15
+    }));
+    
+    const minControlStyle = useAnimatedStyle(() => ({
+        display: "flex",
+        flexDirection: "row",
+        padding: 15,
+        opacity: offset.value / height < 1 ? 1 - offset.value / height : offset.value / height > 1 ? (offset.value - height) / (height - 110) : 0,
+        paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 41 + 15 : 15,
+    }));
+
+    const playerContentStyle = useAnimatedStyle(() => ({
+        width: "100%",
+        height: height - 155,
+        opacity: Math.max(offset.value / height < 1 ? 1 - (1 - offset.value / height) * 2 : offset.value / height > 1 ? 1 - (offset.value - height) / (height / 2) : 1, 0),
+    }));
+
     return (
         <GestureHandlerRootView style={{ }}>
             <GestureDetector gesture={pan}>
                 <View>
                     <Animated.View style={style}>
-                        <View style={{ display: "flex", flexDirection: "row", padding: 15, shadowColor: "#000000", shadowRadius: 10, shadowOpacity: 0.5, shadowOffset: { height: -10, width: 0 } }}>
-                            <Text style={{ color: "#00D19D", fontSize: 32, fontWeight: 700 }}>Music App</Text>
-                            <View style={{ flexGrow: 1 }}></View>
-                            <Pressable style={{ marginLeft: 10 }} onPress={() => Alert.alert('title', 'message')}>
-                            <Svg
-                                width={38}
-                                height={38}
-                                viewBox='0 0 24 24'
-                                fill={"#ffffff"}>
-                                <Path d="M9 19H7V5h2Zm8-14h-2v14h2Z" />
-                            </Svg>
-                            </Pressable>
-                            <Pressable style={{ marginLeft: 5 }} onPress={() => Alert.alert('title', 'message')}>
+                        <Pressable onPress={() => { if (state.value != 1) { last.value = Date.now(); state.value = 1; offset.value = withSpring(snapPoints[1], { mass: 0.25, overshootClamping: true }); } }}>
+                            <Animated.View style={minControlStyle}>
+                                <Text style={{ color: "#00D19D", fontSize: 32, fontWeight: 700 }}>Music App</Text>
+                                <View style={{ flexGrow: 1 }}></View>
+                                <Pressable style={{ marginLeft: 10 }} onPress={() => Alert.alert('title', 'message')}>
                                 <Svg
                                     width={38}
                                     height={38}
                                     viewBox='0 0 24 24'
                                     fill={"#ffffff"}>
-                                    <Path d="M5,18l10-6L5,6V18L5,18z M19,6h-2v12h2V6z" />
+                                    <Path d="M9 19H7V5h2Zm8-14h-2v14h2Z" />
                                 </Svg>
-                            </Pressable>
-                        </View>
+                                </Pressable>
+                                <Pressable style={{ marginLeft: 5 }} onPress={() => Alert.alert('title', 'message')}>
+                                    <Svg
+                                        width={38}
+                                        height={38}
+                                        viewBox='0 0 24 24'
+                                        fill={"#ffffff"}>
+                                        <Path d="M5,18l10-6L5,6V18L5,18z M19,6h-2v12h2V6z" />
+                                    </Svg>
+                                </Pressable>
+                            </Animated.View>
+                        </Pressable>
+                        <Animated.View style={playerContentStyle}>
+                            <View style={{ width: "100%", flexDirection: "row", paddingLeft: 5, paddingRight: 5 }}>
+                                <Pressable onPress={() => { last.value = Date.now(); state.value = 0; offset.value = withSpring(snapPoints[0], { mass: 0.25, overshootClamping: true }); }} style={{ height: 50, width: 50, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={35}
+                                        height={35}
+                                        viewBox="0 -960 960 960"
+                                        fill={"#ffffff"}>
+                                        <Path d="M480-371.69 267.69-584 296-612.31l184 184 184-184L692.31-584 480-371.69Z" />
+                                    </Svg>
+                                </Pressable>
+                                <View style={{ flexGrow: 1 }}></View>
+                                <Pressable style={{ height: 50, width: 50, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={35}
+                                        height={35}
+                                        viewBox="0 -960 960 960"
+                                        fill={"#ffffff"}>
+                                        <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                                    </Svg>
+                                </Pressable>
+                            </View>
+                            <View style={{ flexGrow: 1 }}></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><View style={{ width: "100%", height: "100%", backgroundColor: "blue", borderRadius: 15 }}></View></View>
+                            <View style={{ flexGrow: 1 }}></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30 }}>
+                                <Text style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>Title</Text>
+                                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>Artist</Text>
+                            </View>
+                            <View style={{ flexGrow: 2 }}></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30 }}>
+                                <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.2)", marginLeft: 30 }}></View>
+                                <View style={{ position: "absolute", width: width - 200, height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)", marginLeft: 30 }}></View>
+                                <View style={{ position: "absolute", width: width - 300, height: 2, backgroundColor: "#ffffff", marginLeft: 30 }}></View>
+                                <View style={{ position: "relative", top: -5, left: width - 300 - 6, width: 12, height: 12, backgroundColor: "white", borderRadius: 8 }}></View>
+                                <View style={{ flexDirection: "row" }}>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>0:00</Text>
+                                    <View style={{ flexGrow: 1 }}></View>
+                                    <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>0:00</Text>
+                                </View>
+                            </View>
+                            <View style={{ flexGrow: 1 }}></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                                <Pressable style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={30}
+                                        height={30}
+                                        viewBox="0 0 24 24"
+                                        fill={"rgba(255, 255, 255, 0.5)"}>
+                                        <Path d="M18.15,13.65l3.85,3.85l-3.85,3.85l-0.71-0.71L20.09,18H19c-2.84,0-5.53-1.23-7.39-3.38l0.76-0.65 C14.03,15.89,16.45,17,19,17h1.09l-2.65-2.65L18.15,13.65z M19,7h1.09l-2.65,2.65l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71 L20.09,6H19c-3.58,0-6.86,1.95-8.57,5.09l-0.73,1.34C8.16,15.25,5.21,17,2,17v1c3.58,0,6.86-1.95,8.57-5.09l0.73-1.34 C12.84,8.75,15.79,7,19,7z M8.59,9.98l0.75-0.66C7.49,7.21,4.81,6,2,6v1C4.52,7,6.92,8.09,8.59,9.98z" />
+                                    </Svg>
+                                </Pressable>
+                                <Pressable style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={35}
+                                        height={35}
+                                        viewBox="0 0 100 100"
+                                        fill={"#ffffff"}>
+                                        <Path d="M80 20 40 50l40 30zM20 20h10v60H20z" />
+                                    </Svg>
+                                </Pressable>
+                                <Pressable style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#244D65", alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={35}
+                                        height={35}
+                                        viewBox="0 0 100 100"
+                                        fill={"#ffffff"}>
+                                        <Path d="m20 5 70 45-70 45z" />
+                                    </Svg>
+                                </Pressable>
+                                <Pressable style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={35}
+                                        height={35}
+                                        viewBox="0 0 100 100"
+                                        fill={"#ffffff"}>
+                                        <Path d="m10 20 50 30-50 30zM70 20h10v60H70z" />
+                                    </Svg>
+                                </Pressable>
+                                <Pressable style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                    <Svg
+                                        width={30}
+                                        height={30}
+                                        viewBox="0 0 24 24"
+                                        fill={"rgba(255, 255, 255, 0.5)"}>
+                                        <Path d="M21,13h1v5L3.93,18.03l2.62,2.62l-0.71,0.71L1.99,17.5l3.85-3.85l0.71,0.71l-2.67,2.67L21,17V13z M3,7l17.12-0.03 l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z" /* M13,15h-1.37v-4.52l-1.3,0.38v-1L12.83,9H13V15z M21,17L3.88,17.03l2.67-2.67l-0.71-0.71L1.99,17.5l3.85,3.85l0.71-0.71 l-2.62-2.62L22,18v-5h-1V17z M3,7l17.12-0.03l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z */ />
+                                    </Svg>
+                                </Pressable>
+                            </View>
+                            <View style={{ flexGrow: 2 }}></View>
+                        </Animated.View>
                         <Animated.View style={shelfStyle}>
                             <View style={{ alignItems: "center", justifyContent: "center", padding: 10, paddingBottom: 5 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></View>
                             <NavigationContainer independent={true}>
-                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={TabBarTop} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, indicatorStyle: indicatorStyle, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.0)", borderBottomWidth: 1, marginLeft: 15, marginRight: 15 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, onPress: () => { last.value = Date.now(); state.value = 2; offset.value = withSpring(snapPoints[2], { mass: 0.25, overshootClamping: true }); }, indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
                                     <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent /></Animated.View>} />
                                     <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
                                     <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
