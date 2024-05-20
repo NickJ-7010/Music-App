@@ -1,3 +1,4 @@
+import TrackPlayer, { Capability, Event } from "react-native-track-player";
 import { BrowseEndpoint } from "./YouTubeLib/core/endpoints";
 import SearchSuggestionsSection from "./YouTubeLib/parser/classes/SearchSuggestionsSection";
 import { ObservedArray } from "./YouTubeLib/parser/helpers";
@@ -10,16 +11,44 @@ class YoutubeManager {
     backgroundUrl: any;
 
     constructor() {
+        //this.player = {
+        //    currentIndex: 0,
+        //    savedIndex: 0,
+        //    queue: [],
+        //    unshuffledQueue: [],
+        //    shuffled: false,
+        //    loop: 0
+        //};
+
         this.awaitCallbacks = [];
 
-        Innertube.create({ fetch: async (input: any, init?: RequestInit) => {
+        this.setup();
+    }
+
+    async setup () {
+        try {
+            await TrackPlayer.setupPlayer({
+                
+            });
+
+            await TrackPlayer.updateOptions({
+                capabilities: [
+                    Capability.Pause,
+                    Capability.Play,
+                    Capability.SeekTo,
+                    Capability.SkipToNext,
+                    Capability.SkipToPrevious
+                ]
+            });
+        } catch (e) { console.log(e) }
+
+        this.api = await Innertube.create({ fetch: async (input: any, init?: RequestInit) => {
             //@ts-ignore
             return fetch(input.url ?? input, { ...init, method: input.method, reactNative: { textStreaming: true } });
-        } }).then(val => {
-            this.api = val;
-            this.awaitCallbacks.forEach(callback => callback(0));
-            this.awaitCallbacks = [];
-        })
+        } });
+        
+        this.awaitCallbacks.forEach(callback => callback(0));
+        this.awaitCallbacks = [];
     }
 
     awaitInit () {

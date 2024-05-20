@@ -33,6 +33,7 @@
     "react-native-screens": "^3.31.1",
     "react-native-svg": "^15.2.0",
     "react-native-tab-view": "^3.5.2",
+    "react-native-track-player": "^4.1.1",
     "react-native-url-polyfill": "^2.0.0",
     "text-decoding": "^1.0.0",
     "uuid": "^9.0.1",

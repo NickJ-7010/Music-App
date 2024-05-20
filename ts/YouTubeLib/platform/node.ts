@@ -26,6 +26,10 @@ Platform.load({
     return uuid();
   },
   eval: (text: string, env: any) => {
+    if (env.sig) return eval(text.replace("(sig);", `("${env.sig}");`));
+    if (env.nsig) return eval(text.replace("(nsig)", `("${env.nsig}")`));
+    console.log(text);
+    console.log(env);
     //@ts-ignore
     return eval(text, env);
   },

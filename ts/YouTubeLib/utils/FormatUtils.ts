@@ -189,3 +189,5 @@ export function chooseFormat(options: FormatOptions, streaming_data?: IStreaming
 
   return candidates[0];
 }
+
+export { toDash } from './DashManifest';
