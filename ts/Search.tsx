@@ -15,6 +15,7 @@ import Svg, { Path } from 'react-native-svg';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import TrackPlayer from 'react-native-track-player';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -150,7 +151,25 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                             <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
                             <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
                         </View>
-                        <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                        <Pressable onPress={async () => { 
+                            const info = await youtube.getInfo(item.id);
+
+                            //console.log(JSON.stringify(info));
+
+                            youtube.player.queue = [info];
+                            youtube.player.setState(Date.now());
+
+                            await TrackPlayer.setQueue([{
+                                url: info.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
+                                title: info.basic_info.title,
+                                artist: info.basic_info.author, //@ts-ignore
+                                artwork: info.basic_info.thumbnail[0].url,
+                                duration: info.basic_info.duration
+                            }]);
+
+                            // Start playing it
+                            await TrackPlayer.play();
+                        }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
                             <View style={{ flexGrow: 1, justifyContent: "center" }}>
                                 <Svg
                                     width={24}

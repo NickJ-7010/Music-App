@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Alert, Dimensions } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { View, Text, Pressable, Dimensions, Image } from "react-native";
+import { Gesture, GestureDetector, GestureHandlerRootView, State } from "react-native-gesture-handler";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
+import youtube from "./YouTube";
+import TrackPlayer, { usePlaybackState, useProgress, State as PlaybackState } from "react-native-track-player";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -18,10 +20,16 @@ interface PlayerShelfProps {
 }
 
 function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
+    const [stateNum, setState] = useState(0);
     const last = useSharedValue<number>(0); 
     const state = useSharedValue<number>(0);
     const offset = useSharedValue<number>(0);
     const init = useSharedValue<number>(0);
+    const playerState = usePlaybackState();
+
+    youtube.player.setState = setState;
+
+    console.log('redraw');
   
     const pan = Gesture.Pan()
         .onBegin(() => {
@@ -81,7 +89,6 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
-
     const shelfContentStyle = useAnimatedStyle(() => ({
         flexGrow: 1,
         opacity: Math.max((offset.value - height) / (height - 110), 0)
@@ -98,9 +105,10 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     const minControlStyle = useAnimatedStyle(() => ({
         display: "flex",
         flexDirection: "row",
-        padding: 15,
+        padding: 10,
+        backgroundColor: "transparent",
         opacity: offset.value / height < 1 ? 1 - offset.value / height : offset.value / height > 1 ? (offset.value - height) / (height - 110) : 0,
-        paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 41 + 15 : 15,
+        paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 41 + 10 : 10,
     }));
 
     const playerContentStyle = useAnimatedStyle(() => ({
@@ -116,18 +124,22 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                     <Animated.View style={style}>
                         <Pressable onPress={() => { if (state.value != 1) { last.value = Date.now(); state.value = 1; offset.value = withSpring(snapPoints[1], { mass: 0.25, overshootClamping: true }); } }}>
                             <Animated.View style={minControlStyle}>
-                                <Text style={{ color: "#00D19D", fontSize: 32, fontWeight: 700 }}>Music App</Text>
-                                <View style={{ flexGrow: 1 }}></View>
-                                <Pressable style={{ marginLeft: 10 }} onPress={() => Alert.alert('title', 'message')}>
-                                <Svg
-                                    width={38}
-                                    height={38}
-                                    viewBox='0 0 24 24'
-                                    fill={"#ffffff"}>
-                                    <Path d="M9 19H7V5h2Zm8-14h-2v14h2Z" />
-                                </Svg>
+                                <View style={{ width: 5 }}></View>
+                                <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: youtube.player.queue[youtube.player.currentIndex]?.basic_info?.thumbnail[0]?.url }}></Image>
+                                <View style={{ marginLeft: 10, flexGrow: 1, width: 0, justifyContent: "center" }}>
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.title ?? 'Title'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.author ?? 'Artist'}</Text>
+                                </View>
+                                <Pressable style={{ margin: 5, marginRight: 0, padding: playerState.state == PlaybackState.Playing ? 0 : 6 }} onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }}>
+                                    <Svg
+                                        width= {playerState.state == PlaybackState.Playing ? 38 : 26}
+                                        height={playerState.state == PlaybackState.Playing ? 38 : 26}
+                                        viewBox={playerState.state == PlaybackState.Playing ? "0 0 24 24" : "0 0 100 100"}
+                                        fill={"#ffffff"}>
+                                        <Path d={playerState.state == PlaybackState.Playing ? "M9 19H7V5h2Zm8-14h-2v14h2Z" : "m20 5 70 45-70 45z"} />
+                                    </Svg>
                                 </Pressable>
-                                <Pressable style={{ marginLeft: 5 }} onPress={() => Alert.alert('title', 'message')}>
+                                <Pressable style={{ margin: 5 }} onPress={() => youtube.playerControls.next()}>
                                     <Svg
                                         width={38}
                                         height={38}
@@ -161,36 +173,48 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 </Pressable>
                             </View>
                             <View style={{ flexGrow: 1 }}></View>
-                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><View style={{ width: "100%", height: "100%", backgroundColor: "blue", borderRadius: 15 }}></View></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><Image style={{ width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 15 }} source={{ uri: youtube.player.queue[youtube.player.currentIndex]?.basic_info?.thumbnail[0]?.url }} /></View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
-                                <Text style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>Title</Text>
-                                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>Artist</Text>
+                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.title ?? 'Title'}</Text>
+                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.author ?? 'Artist'}</Text>
                             </View>
                             <View style={{ flexGrow: 2 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
-                                <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.2)", marginLeft: 30 }}></View>
-                                <View style={{ position: "absolute", width: width - 200, height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)", marginLeft: 30 }}></View>
-                                <View style={{ position: "absolute", width: width - 300, height: 2, backgroundColor: "#ffffff", marginLeft: 30 }}></View>
-                                <View style={{ position: "relative", top: -5, left: width - 300 - 6, width: 12, height: 12, backgroundColor: "white", borderRadius: 8 }}></View>
-                                <View style={{ flexDirection: "row" }}>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>0:00</Text>
-                                    <View style={{ flexGrow: 1 }}></View>
-                                    <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>0:00</Text>
-                                </View>
+                                <ProgressView />
                             </View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                                <Pressable style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => {
+                                    if (youtube.player.shuffled) {
+                                        youtube.player.shuffled = false;
+                                        youtube.player.queue = youtube.player.unshuffledQueue;
+                                        youtube.player.unshuffledQueue = [];
+                                        youtube.player.currentIndex = youtube.player.savedIndex;
+                                    } else {
+                                        youtube.player.shuffled = true;
+                                        youtube.player.unshuffledQueue = [...youtube.player.queue];
+                                        const tempQueue = youtube.player.queue;
+                                        youtube.player.queue = [];
+                                        youtube.player.queue.push(tempQueue.splice(youtube.player.currentIndex, 1)[0]);
+                                        const length = tempQueue.length
+                                        for (var i = 0; i < length; i++) {
+                                            youtube.player.queue.push(tempQueue.splice(Math.floor(Math.random() * tempQueue.length), 1)[0]);
+                                        };
+                                        youtube.player.savedIndex = youtube.player.currentIndex;
+                                        youtube.player.currentIndex = 0;
+                                    }
+                                    setState(Date.now());
+                                }} style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={30}
                                         height={30}
                                         viewBox="0 0 24 24"
-                                        fill={"rgba(255, 255, 255, 0.5)"}>
+                                        fill={youtube.player.shuffled ? "#ffffff" : "rgba(255, 255, 255, 0.5)"}>
                                         <Path d="M18.15,13.65l3.85,3.85l-3.85,3.85l-0.71-0.71L20.09,18H19c-2.84,0-5.53-1.23-7.39-3.38l0.76-0.65 C14.03,15.89,16.45,17,19,17h1.09l-2.65-2.65L18.15,13.65z M19,7h1.09l-2.65,2.65l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71 L20.09,6H19c-3.58,0-6.86,1.95-8.57,5.09l-0.73,1.34C8.16,15.25,5.21,17,2,17v1c3.58,0,6.86-1.95,8.57-5.09l0.73-1.34 C12.84,8.75,15.79,7,19,7z M8.59,9.98l0.75-0.66C7.49,7.21,4.81,6,2,6v1C4.52,7,6.92,8.09,8.59,9.98z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => youtube.playerControls.previous()} style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={35}
                                         height={35}
@@ -199,16 +223,16 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="M80 20 40 50l40 30zM20 20h10v60H20z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#244D65", alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#244D65", alignItems: "center", justifyContent: "center" }}>
                                     <Svg
-                                        width={35}
-                                        height={35}
-                                        viewBox="0 0 100 100"
+                                        width={playerState.state == PlaybackState.Playing ? 50 : 35}
+                                        height={playerState.state == PlaybackState.Playing ? 50 : 35}
+                                        viewBox={playerState.state == PlaybackState.Playing ? "0 0 24 24" : "0 0 100 100"}
                                         fill={"#ffffff"}>
-                                        <Path d="m20 5 70 45-70 45z" />
+                                        <Path d={playerState.state == PlaybackState.Playing ? "M9 19H7V5h2Zm8-14h-2v14h2Z" : "m20 5 70 45-70 45z"} />
                                     </Svg>
                                 </Pressable>
-                                <Pressable style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => youtube.playerControls.next()} style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={35}
                                         height={35}
@@ -217,13 +241,13 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="m10 20 50 30-50 30zM70 20h10v60H70z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => { youtube.player.loop = (youtube.player.loop + 1) % 3; setState(Date.now()); }} style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={30}
                                         height={30}
                                         viewBox="0 0 24 24"
-                                        fill={"rgba(255, 255, 255, 0.5)"}>
-                                        <Path d="M21,13h1v5L3.93,18.03l2.62,2.62l-0.71,0.71L1.99,17.5l3.85-3.85l0.71,0.71l-2.67,2.67L21,17V13z M3,7l17.12-0.03 l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z" /* M13,15h-1.37v-4.52l-1.3,0.38v-1L12.83,9H13V15z M21,17L3.88,17.03l2.67-2.67l-0.71-0.71L1.99,17.5l3.85,3.85l0.71-0.71 l-2.62-2.62L22,18v-5h-1V17z M3,7l17.12-0.03l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z */ />
+                                        fill={youtube.player.loop ? "#ffffff" : "rgba(255, 255, 255, 0.5)"}>
+                                        <Path d={youtube.player.loop == 2 ? "M13,15h-1.37v-4.52l-1.3,0.38v-1L12.83,9H13V15z M21,17L3.88,17.03l2.67-2.67l-0.71-0.71L1.99,17.5l3.85,3.85l0.71-0.71 l-2.62-2.62L22,18v-5h-1V17z M3,7l17.12-0.03l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z" : "M21,13h1v5L3.93,18.03l2.62,2.62l-0.71,0.71L1.99,17.5l3.85-3.85l0.71,0.71l-2.67,2.67L21,17V13z M3,7l17.12-0.03 l-2.67,2.67l0.71,0.71l3.85-3.85l-3.85-3.85l-0.71,0.71l2.62,2.62L2,6v5h1V7z"} />
                                     </Svg>
                                 </Pressable>
                             </View>
@@ -246,6 +270,24 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                 {bottomTabBar}
             </Animated.View>
         </GestureHandlerRootView>
+    );
+}
+
+function ProgressView () {
+    const { position, buffered, duration } = useProgress();
+
+    return (
+        <>
+            <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.1)", marginLeft: 30 }}></View>
+            <View style={{ position: "absolute", width: Math.min(buffered / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)", marginLeft: 30 }}></View>
+            <View style={{ position: "absolute", width: Math.min(position / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "#ffffff", marginLeft: 30 }}></View>
+            <View style={{ position: "relative", top: -5, left: Math.min(position / (duration ? duration : 1), 1) * (width - 60) - 6, width: 12, height: 12, backgroundColor: "white", borderRadius: 8 }}></View>
+            <View style={{ flexDirection: "row" }}>
+                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(position) ?? '0:00'}</Text>
+                <View style={{ flexGrow: 1 }}></View>
+                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(duration) ?? '0:00'}</Text>
+            </View>
+        </>
     );
 }
 

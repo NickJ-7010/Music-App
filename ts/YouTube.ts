@@ -1,28 +1,53 @@
 import TrackPlayer, { Capability, Event } from "react-native-track-player";
-import { BrowseEndpoint } from "./YouTubeLib/core/endpoints";
+import { BrowseEndpoint, NextEndpoint, PlayerEndpoint } from "./YouTubeLib/core/endpoints";
 import SearchSuggestionsSection from "./YouTubeLib/parser/classes/SearchSuggestionsSection";
 import { ObservedArray } from "./YouTubeLib/parser/helpers";
-import { HomeFeed, Search } from "./YouTubeLib/parser/ytmusic";
+import { HomeFeed, Search, TrackInfo } from "./YouTubeLib/parser/ytmusic";
 import Innertube from "./YouTubeLib/platform/node";
+import { generateRandomString } from "./YouTubeLib/utils/Utils";
 
 class YoutubeManager {
     api!: Innertube;
     awaitCallbacks: Function[];
     backgroundUrl: any;
+    player: {
+        currentIndex: number;
+        savedIndex: number;
+        queue: any[];
+        unshuffledQueue: any[];
+        shuffled: boolean;
+        loop: number;
+        setState: Function;
+    };
+    playerControls: { previous: () => Promise<void>; next: () => Promise<void>; };
 
     constructor() {
-        //this.player = {
-        //    currentIndex: 0,
-        //    savedIndex: 0,
-        //    queue: [],
-        //    unshuffledQueue: [],
-        //    shuffled: false,
-        //    loop: 0
-        //};
+        this.player = {
+            currentIndex: 0,
+            savedIndex: 0,
+            queue: [],
+            unshuffledQueue: [],
+            shuffled: false,
+            loop: 0,
+            setState: () => { console.error('Called setState without initialized PlayerShelf'); }
+        }; 
 
         this.awaitCallbacks = [];
 
         this.setup();
+
+        this.playerControls = {
+            next: async () => {
+                await TrackPlayer.skipToNext();
+            },
+            previous: async () => {
+                if ((await TrackPlayer.getProgress()).position >= 5) {
+                    await TrackPlayer.seekTo(0);
+                } else {
+                    await TrackPlayer.skipToPrevious();
+                }
+            }
+        };
     }
 
     async setup () {
@@ -67,6 +92,29 @@ class YoutubeManager {
         await this.awaitInit();
         return await this.api.music.search(query);
     }
+
+    async getInfo (video_id: string): Promise<TrackInfo> {
+        const player_payload = PlayerEndpoint.build({
+            video_id,
+            sts: this.api.session.player?.sts,
+            client: 'YTMUSIC'
+        });
+      
+        const next_payload = NextEndpoint.build({
+            video_id,
+            client: 'YTMUSIC'
+        });
+      
+        const player_response = this.api.actions.execute(PlayerEndpoint.PATH, player_payload);
+        const next_response = this.api.actions.execute(NextEndpoint.PATH, next_payload);
+        const response = await Promise.all([ player_response, next_response ]);
+      
+        console.log(JSON.stringify(response));
+
+        const cpn = generateRandomString(16);
+      
+        return new TrackInfo(response, this.api.actions, cpn);
+    } 
 
     async getHome (updateBackground: boolean): Promise<HomeFeed> {
         await this.awaitInit();
