@@ -1,4 +1,4 @@
-import TrackPlayer, { Event } from "react-native-track-player";
+import TrackPlayer, { Event, State } from "react-native-track-player";
 import youtube from "./YouTube";
 
 module.exports = async function() {
@@ -16,5 +16,16 @@ module.exports = async function() {
     });
     TrackPlayer.addEventListener(Event.RemoteSeek, async (event) => {
         await TrackPlayer.seekTo(event.position);
+    });
+    TrackPlayer.addEventListener(Event.PlaybackState, event => {
+        if (event.state == State.Ready) {
+            TrackPlayer.updateMetadataForTrack(0, {
+                title: youtube.player.queue[youtube.player.currentIndex].basic_info.title,
+                artist: youtube.player.queue[youtube.player.currentIndex].basic_info.author,
+                artwork: youtube.player.queue[youtube.player.currentIndex].basic_info.thumbnail[0].url,
+                duration: youtube.player.queue[youtube.player.currentIndex].basic_info.duration
+            });
+        }
+        console.log(JSON.stringify(event));
     });
 }

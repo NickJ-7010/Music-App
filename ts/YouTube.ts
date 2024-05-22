@@ -52,9 +52,7 @@ class YoutubeManager {
 
     async setup () {
         try {
-            await TrackPlayer.setupPlayer({
-                
-            });
+            await TrackPlayer.setupPlayer();
 
             await TrackPlayer.updateOptions({
                 capabilities: [

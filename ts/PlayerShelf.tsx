@@ -7,7 +7,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
 import youtube from "./YouTube";
-import TrackPlayer, { usePlaybackState, useProgress, State as PlaybackState } from "react-native-track-player";
+import TrackPlayer, { usePlaybackState, useProgress, State as PlaybackState, RepeatMode } from "react-native-track-player";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -132,7 +132,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 </View>
                                 <Pressable style={{ margin: 5, marginRight: 0, padding: playerState.state == PlaybackState.Playing ? 0 : 6 }} onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }}>
                                     <Svg
-                                        width= {playerState.state == PlaybackState.Playing ? 38 : 26}
+                                        width={playerState.state == PlaybackState.Playing ? 38 : 26}
                                         height={playerState.state == PlaybackState.Playing ? 38 : 26}
                                         viewBox={playerState.state == PlaybackState.Playing ? "0 0 24 24" : "0 0 100 100"}
                                         fill={"#ffffff"}>
@@ -241,7 +241,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="m10 20 50 30-50 30zM70 20h10v60H70z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable onPress={() => { youtube.player.loop = (youtube.player.loop + 1) % 3; setState(Date.now()); }} style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => { youtube.player.loop = (youtube.player.loop + 1) % 3; TrackPlayer.setRepeatMode(youtube.player.loop == 2 ? RepeatMode.Track : RepeatMode.Off); setState(Date.now()); }} style={{ height: 40, width: 40, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={30}
                                         height={30}
@@ -274,7 +274,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 }
 
 function ProgressView () {
-    const { position, buffered, duration } = useProgress();
+    const duration = youtube.player.queue[youtube.player.currentIndex]?.basic_info?.duration ?? 0;
+    const { position, buffered } = useProgress();
 
     return (
         <>
