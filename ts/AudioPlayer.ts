@@ -20,12 +20,11 @@ module.exports = async function() {
     TrackPlayer.addEventListener(Event.PlaybackState, event => {
         if (event.state == State.Ready) {
             TrackPlayer.updateMetadataForTrack(0, {
-                title: youtube.player.queue[youtube.player.currentIndex].basic_info.title,
-                artist: youtube.player.queue[youtube.player.currentIndex].basic_info.author,
-                artwork: youtube.player.queue[youtube.player.currentIndex].basic_info.thumbnail[0].url,
-                duration: youtube.player.queue[youtube.player.currentIndex].basic_info.duration
+                title: youtube.player.queue[youtube.player.currentIndex].track.basic_info.title,
+                artist: youtube.player.queue[youtube.player.currentIndex].track.basic_info.author, //@ts-ignore
+                artwork: youtube.player.queue[youtube.player.currentIndex].track.basic_info.thumbnail[0].url,
+                duration: youtube.player.queue[youtube.player.currentIndex].track.basic_info.duration
             });
         }
-        console.log(JSON.stringify(event));
     });
 }

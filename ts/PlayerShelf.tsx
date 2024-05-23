@@ -8,6 +8,7 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import { TabBarTop } from "./AnimatedTabs";
 import youtube from "./YouTube";
 import TrackPlayer, { usePlaybackState, useProgress, State as PlaybackState, RepeatMode } from "react-native-track-player";
+import * as MCU from "@material/material-color-utilities";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -29,8 +30,11 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 
     youtube.player.setState = setState;
 
-    console.log('redraw');
-  
+    //{"background": "#EEECE3", "detail": "#355A1F", "platform": "ios", "primary": "#6A77AF", "secondary": "#070C06"}
+    const theme = MCU.themeFromSourceColor(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.background.slice(1), 16)).schemes.dark;    
+    const backgroundColor = theme.onPrimary;
+    const containerColor = "#" + theme.primaryContainer.toString(16).slice(2);
+
     const pan = Gesture.Pan()
         .onBegin(() => {
             init.value = offset.value;
@@ -62,12 +66,12 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         position: "absolute",
         width: "100%",
         bottom: -76, // 76 is the current estimate of the TabBar height, no better way to get height :/
-        backgroundColor: `rgb(${interpolate(31, 18, offset.value / height)}, ${interpolate(31, 38, offset.value / height)}, ${interpolate(31, 51, offset.value / height)})`,
+        backgroundColor: `rgb(${interpolate(31, (backgroundColor & 0xff0000) >> 16, offset.value / height)}, ${interpolate(31, (backgroundColor & 0x00ff00) >> 8, offset.value / height)}, ${interpolate(31, (backgroundColor & 0x0000ff), offset.value / height)})`,
         height: Math.min((height - 144) / height * offset.value + 144, height)
     }));
 
     const shelfStyle = useAnimatedStyle(() => ({
-        backgroundColor: "#244D65",
+        backgroundColor: containerColor,
         transform: [{ translateY: offset.value / height > 1 ? - (height - 52) / height * (offset.value - height) : 0 }],
         width: "100%",
         height: height - 110,
@@ -107,7 +111,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         flexDirection: "row",
         padding: 10,
         backgroundColor: "transparent",
-        opacity: offset.value / height < 1 ? 1 - offset.value / height : offset.value / height > 1 ? (offset.value - height) / (height - 110) : 0,
+        opacity: Math.max(offset.value / height < 1 ? 1 - (offset.value / height * 2) : offset.value / height > 1 ? (offset.value - height) / (height / 2) : 0, 0),
         paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 41 + 10 : 10,
     }));
 
@@ -125,10 +129,10 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                         <Pressable onPress={() => { if (state.value != 1) { last.value = Date.now(); state.value = 1; offset.value = withSpring(snapPoints[1], { mass: 0.25, overshootClamping: true }); } }}>
                             <Animated.View style={minControlStyle}>
                                 <View style={{ width: 5 }}></View>
-                                <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: youtube.player.queue[youtube.player.currentIndex]?.basic_info?.thumbnail[0]?.url }}></Image>
+                                <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: getThumbnail(youtube.player.queue[youtube.player.currentIndex]) }}></Image>
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0, justifyContent: "center" }}>
-                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.title ?? 'Title'}</Text>
-                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.author ?? 'Artist'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
                                 </View>
                                 <Pressable style={{ margin: 5, marginRight: 0, padding: playerState.state == PlaybackState.Playing ? 0 : 6 }} onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }}>
                                     <Svg
@@ -173,11 +177,11 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 </Pressable>
                             </View>
                             <View style={{ flexGrow: 1 }}></View>
-                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><Image style={{ width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 15 }} source={{ uri: youtube.player.queue[youtube.player.currentIndex]?.basic_info?.thumbnail[0]?.url }} /></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><Image style={{ width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 15 }} source={{ uri: getThumbnail(youtube.player.queue[youtube.player.currentIndex]) }} /></View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
-                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.title ?? 'Title'}</Text>
-                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.basic_info?.author ?? 'Artist'}</Text>
+                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
+                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
                             </View>
                             <View style={{ flexGrow: 2 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
@@ -223,7 +227,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="M80 20 40 50l40 30zM20 20h10v60H20z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#244D65", alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: containerColor, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={playerState.state == PlaybackState.Playing ? 50 : 35}
                                         height={playerState.state == PlaybackState.Playing ? 50 : 35}
@@ -274,7 +278,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 }
 
 function ProgressView () {
-    const duration = youtube.player.queue[youtube.player.currentIndex]?.basic_info?.duration ?? 0;
+    const duration = youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.duration ?? 0;
     const { position, buffered } = useProgress();
 
     return (
@@ -308,6 +312,10 @@ function RelatedComponent () {
     return (
         <View><Text>RELATED</Text></View>
     );
+}
+
+function getThumbnail (obj: any) {
+    return obj?.track?.basic_info?.thumbnail[0]?.url;
 }
 
 export default Component;

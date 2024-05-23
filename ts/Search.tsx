@@ -160,11 +160,11 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                             youtube.player.setState(Date.now());
 
                             await TrackPlayer.setQueue([{
-                                url: info.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
-                                title: info.basic_info.title,
-                                artist: info.basic_info.author, //@ts-ignore
-                                artwork: info.basic_info.thumbnail[0].url,
-                                duration: info.basic_info.duration
+                                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
+                                title: info.track.basic_info.title,
+                                artist: info.track.basic_info.author, //@ts-ignore
+                                artwork: info.track.basic_info.thumbnail[0].url,
+                                duration: info.track.basic_info.duration
                             }]);
 
                             // Start playing it

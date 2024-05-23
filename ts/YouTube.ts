@@ -1,10 +1,10 @@
-import TrackPlayer, { Capability, Event } from "react-native-track-player";
-import { BrowseEndpoint, NextEndpoint, PlayerEndpoint } from "./YouTubeLib/core/endpoints";
+import TrackPlayer, { Capability } from "react-native-track-player";
+import { BrowseEndpoint } from "./YouTubeLib/core/endpoints";
 import SearchSuggestionsSection from "./YouTubeLib/parser/classes/SearchSuggestionsSection";
 import { ObservedArray } from "./YouTubeLib/parser/helpers";
 import { HomeFeed, Search, TrackInfo } from "./YouTubeLib/parser/ytmusic";
 import Innertube from "./YouTubeLib/platform/node";
-import { generateRandomString } from "./YouTubeLib/utils/Utils";
+import ImageColors from "react-native-image-colors";
 
 class YoutubeManager {
     api!: Innertube;
@@ -13,8 +13,8 @@ class YoutubeManager {
     player: {
         currentIndex: number;
         savedIndex: number;
-        queue: any[];
-        unshuffledQueue: any[];
+        queue: MusicTrackInfo[];
+        unshuffledQueue: MusicTrackInfo[];
         shuffled: boolean;
         loop: number;
         setState: Function;
@@ -69,7 +69,7 @@ class YoutubeManager {
             //@ts-ignore
             return fetch(input.url ?? input, { ...init, method: input.method, reactNative: { textStreaming: true } });
         } });
-        
+
         this.awaitCallbacks.forEach(callback => callback(0));
         this.awaitCallbacks = [];
     }
@@ -91,27 +91,11 @@ class YoutubeManager {
         return await this.api.music.search(query);
     }
 
-    async getInfo (video_id: string): Promise<TrackInfo> {
-        const player_payload = PlayerEndpoint.build({
-            video_id,
-            sts: this.api.session.player?.sts,
-            client: 'YTMUSIC'
-        });
-      
-        const next_payload = NextEndpoint.build({
-            video_id,
-            client: 'YTMUSIC'
-        });
-      
-        const player_response = this.api.actions.execute(PlayerEndpoint.PATH, player_payload);
-        const next_response = this.api.actions.execute(NextEndpoint.PATH, next_payload);
-        const response = await Promise.all([ player_response, next_response ]);
-      
-        console.log(JSON.stringify(response));
+    async getInfo (video_id: string): Promise<MusicTrackInfo> {
+        const track = await this.api.music.getInfo(video_id);
 
-        const cpn = generateRandomString(16);
-      
-        return new TrackInfo(response, this.api.actions, cpn);
+        //@ts-ignore
+        return { colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
     } 
 
     async getHome (updateBackground: boolean): Promise<HomeFeed> {
@@ -122,9 +106,14 @@ class YoutubeManager {
         }));
 
         if (updateBackground) this.backgroundUrl = res.data.background.musicThumbnailRenderer.thumbnail.thumbnails[0].url;
-        
+
         return new HomeFeed(res, this.api.actions);
     }
+}
+
+interface MusicTrackInfo {
+    colors: any;
+    track: TrackInfo
 }
 
 export default new YoutubeManager();
