@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, Dimensions, Image } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, State } from "react-native-gesture-handler";
-import Animated, { useSharedValue, withSpring, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { useSharedValue, withSpring, useAnimatedStyle, runOnJS } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -9,6 +9,7 @@ import { TabBarTop } from "./AnimatedTabs";
 import youtube from "./YouTube";
 import TrackPlayer, { usePlaybackState, useProgress, State as PlaybackState, RepeatMode } from "react-native-track-player";
 import * as MCU from "@material/material-color-utilities";
+import LinearGradient from "react-native-linear-gradient";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -28,14 +29,27 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     const init = useSharedValue<number>(0);
     const playerState = usePlaybackState();
 
+    function jumpPlayer (pos: number) {
+        last.value = Date.now();
+        state.value = pos;
+        offset.value = withSpring(snapPoints[pos], { mass: 4, overshootClamping: true });
+    }
+
     youtube.player.setState = setState;
+    youtube.player.jumpPlayer = jumpPlayer;
 
-    //{"background": "#EEECE3", "detail": "#355A1F", "platform": "ios", "primary": "#6A77AF", "secondary": "#070C06"}
-    const theme = MCU.themeFromSourceColor(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.background.slice(1), 16)).schemes.dark;    
-    const backgroundColor = theme.onPrimary;
-    const containerColor = "#" + theme.primaryContainer.toString(16).slice(2);
+    const theme = MCU.themeFromSourceColor(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.primary.slice(1) ?? "00D19D", 16)).schemes.dark;    
+    const hct = MCU.Hct.fromInt(theme.onPrimary);
+    hct.chroma = 1000;
+    const tones = MCU.TonalPalette.fromHct(hct);
+    
+    const palette = [
+        getRGB(tones.tone(12)),
+        getRGB(tones.tone(2)),
+        getRGB(tones.tone(20))
+    ];
 
-    const pan = Gesture.Pan()
+    const gesture = Gesture.Pan()
         .onBegin(() => {
             init.value = offset.value;
         })
@@ -57,22 +71,17 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
             offset.value = withSpring(snapPoint, { mass: 0.25, overshootClamping: true });
         });
 
-    const interpolate = (start: number, end: number, pos: number): number => {
-        "worklet";
-        return Math.round(Math.min(Math.max((1 - pos) * start + pos * end, Math.min(start, end)), Math.max(start, end)));
-    };
-
     const style = useAnimatedStyle(() => ({
         position: "absolute",
         width: "100%",
         bottom: -76, // 76 is the current estimate of the TabBar height, no better way to get height :/
-        backgroundColor: `rgb(${interpolate(31, (backgroundColor & 0xff0000) >> 16, offset.value / height)}, ${interpolate(31, (backgroundColor & 0x00ff00) >> 8, offset.value / height)}, ${interpolate(31, (backgroundColor & 0x0000ff), offset.value / height)})`,
+        backgroundColor: "#212121",
         height: Math.min((height - 144) / height * offset.value + 144, height)
     }));
 
     const shelfStyle = useAnimatedStyle(() => ({
-        backgroundColor: containerColor,
-        transform: [{ translateY: offset.value / height > 1 ? - (height - 52) / height * (offset.value - height) : 0 }],
+        backgroundColor: offset.value / height <= 1.01 ? "transparent" : `rgb(${interpolate(palette[1].r, palette[2].r, (offset.value - height) / height)}, ${interpolate(palette[1].g, palette[2].g, (offset.value - height) / height)}, ${interpolate(palette[1].b, palette[2].b, (offset.value - height) / height)})`,
+        transform: [{ translateY: offset.value / height > 1 ? - (height - 65) / height * (offset.value - height) + 10 : 10 }],
         width: "100%",
         height: height - 110,
         borderTopStartRadius: 15,
@@ -110,23 +119,46 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         display: "flex",
         flexDirection: "row",
         padding: 10,
-        backgroundColor: "transparent",
-        opacity: Math.max(offset.value / height < 1 ? 1 - (offset.value / height * 2) : offset.value / height > 1 ? (offset.value - height) / (height / 2) : 0, 0),
-        paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 41 + 10 : 10,
+        opacity: Math.max(offset.value / height < 1 ? 1 - (offset.value / height * 2) : offset.value / height > 1 ? (offset.value - (height - 110) / 2 - height) / ((height - 110) / 2) : 0, 0),
+        paddingTop: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 52 : offset.value / height < 1 ? (1 - (offset.value) / (height - 110)) * 10 : 0,
+        paddingBottom: offset.value / height > 1 ? (offset.value - height) / (height - 110) * 10 : offset.value / height < 1 ? (1 - (offset.value) / (height - 110)) * 10 : 0,
     }));
 
     const playerContentStyle = useAnimatedStyle(() => ({
         width: "100%",
-        height: height - 155,
+        height: height - 175,
         opacity: Math.max(offset.value / height < 1 ? 1 - (1 - offset.value / height) * 2 : offset.value / height > 1 ? 1 - (offset.value - height) / (height / 2) : 1, 0),
+    }));
+
+    const backGradient = useAnimatedStyle(() => ({
+        position: "absolute",
+        height: height,
+        width: width,
+        opacity: Math.min(offset.value / height, 1),
+    }));
+
+    const dragIndicator = useAnimatedStyle(() => ({
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 10,
+        paddingBottom: 5,
+        opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
     return (
         <GestureHandlerRootView style={{ }}>
-            <GestureDetector gesture={pan}>
+            <GestureDetector gesture={gesture}>
                 <View>
                     <Animated.View style={style}>
-                        <Pressable onPress={() => { if (state.value != 1) { last.value = Date.now(); state.value = 1; offset.value = withSpring(snapPoints[1], { mass: 0.25, overshootClamping: true }); } }}>
+                        <Animated.View style={backGradient}>
+                            <LinearGradient
+                                start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                                locations={[0.25, 1]}
+                                colors={[`rgba(${palette[0].r}, ${palette[0].g}, ${palette[0].b}, 1)`, `rgba(${palette[1].r}, ${palette[1].g}, ${palette[1].b}, 1)`]}
+                                style={{ position: "absolute", top: 0, left: 0, height: height, width: width }}>
+                            </LinearGradient>
+                        </Animated.View>
+                        <Pressable onPress={() => { if (state.value != 1) { jumpPlayer(1) } }}>
                             <Animated.View style={minControlStyle}>
                                 <View style={{ width: 5 }}></View>
                                 <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: getThumbnail(youtube.player.queue[youtube.player.currentIndex]) }}></Image>
@@ -156,7 +188,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                         </Pressable>
                         <Animated.View style={playerContentStyle}>
                             <View style={{ width: "100%", flexDirection: "row", paddingLeft: 5, paddingRight: 5 }}>
-                                <Pressable onPress={() => { last.value = Date.now(); state.value = 0; offset.value = withSpring(snapPoints[0], { mass: 0.25, overshootClamping: true }); }} style={{ height: 50, width: 50, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => jumpPlayer(0)} style={{ height: 50, width: 50, alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={35}
                                         height={35}
@@ -183,11 +215,10 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
                                 <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
                             </View>
-                            <View style={{ flexGrow: 2 }}></View>
+                            <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
                                 <ProgressView />
                             </View>
-                            <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                                 <Pressable onPress={() => {
                                     if (youtube.player.shuffled) {
@@ -227,12 +258,12 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="M80 20 40 50l40 30zM20 20h10v60H20z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: containerColor, alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={() => { if (playerState.state == PlaybackState.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={playerState.state == PlaybackState.Playing ? 50 : 35}
                                         height={playerState.state == PlaybackState.Playing ? 50 : 35}
                                         viewBox={playerState.state == PlaybackState.Playing ? "0 0 24 24" : "0 0 100 100"}
-                                        fill={"#ffffff"}>
+                                        fill={`#${tones.tone(5).toString(16).slice(2)}`}>
                                         <Path d={playerState.state == PlaybackState.Playing ? "M9 19H7V5h2Zm8-14h-2v14h2Z" : "m20 5 70 45-70 45z"} />
                                     </Svg>
                                 </Pressable>
@@ -255,12 +286,11 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                     </Svg>
                                 </Pressable>
                             </View>
-                            <View style={{ flexGrow: 2 }}></View>
                         </Animated.View>
                         <Animated.View style={shelfStyle}>
-                            <View style={{ alignItems: "center", justifyContent: "center", padding: 10, paddingBottom: 5 }}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></View>
+                            <Animated.View style={dragIndicator}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></Animated.View> 
                             <NavigationContainer independent={true}>
-                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, onPress: () => { last.value = Date.now(); state.value = 2; offset.value = withSpring(snapPoints[2], { mass: 0.25, overshootClamping: true }); }, indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, onPress: () => jumpPlayer(2), indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
                                     <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent /></Animated.View>} />
                                     <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
                                     <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
@@ -278,21 +308,57 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 }
 
 function ProgressView () {
+    
     const duration = youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.duration ?? 0;
     const { position, buffered } = useProgress();
+    const [isDragging, setDragging] = useState(false);
+    const [offset, setOffset] = useState(0);
+
+    const gesture = Gesture.Pan()
+        .onBegin(() => {
+            runOnJS(setDragging)(true);
+        })
+        .onChange((event) => {
+            runOnJS(setOffset)(Math.min(Math.max(event.absoluteX - 30, 0), width - 60));
+        })
+        .onFinalize((event) => {
+            runOnJS(TrackPlayer.seekTo)((event.absoluteX - 30) / (width - 60) * duration);
+            runOnJS(setDragging)(false);
+        });
+
+    const progressBarStyle = useAnimatedStyle(() => ({
+        position: "absolute",
+        width: isDragging ? offset : Math.min(position / (duration ? duration : 1), 1) * (width - 60),
+        height: 2,
+        backgroundColor: "#ffffff"
+    }));
+
+    const progressButtonStyle = useAnimatedStyle(() => ({
+        position: "relative",
+        top: -5,
+        left: isDragging ? offset : Math.min(position / (duration ? duration : 1), 1) * (width - 60) - 6,
+        width: 12,
+        height: 12,
+        backgroundColor: "white",
+        borderRadius: 8
+    }));
 
     return (
-        <>
-            <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.1)", marginLeft: 30 }}></View>
-            <View style={{ position: "absolute", width: Math.min(buffered / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)", marginLeft: 30 }}></View>
-            <View style={{ position: "absolute", width: Math.min(position / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "#ffffff", marginLeft: 30 }}></View>
-            <View style={{ position: "relative", top: -5, left: Math.min(position / (duration ? duration : 1), 1) * (width - 60) - 6, width: 12, height: 12, backgroundColor: "white", borderRadius: 8 }}></View>
-            <View style={{ flexDirection: "row" }}>
-                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(position) ?? '0:00'}</Text>
-                <View style={{ flexGrow: 1 }}></View>
-                <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(duration) ?? '0:00'}</Text>
-            </View>
-        </>
+        <View style={{ paddingTop: 10, paddingBottom: 10 }}>
+            <GestureDetector gesture={gesture}>
+                <View>
+                    <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.1)" }}></View>
+                    <View style={{ position: "absolute", width: Math.min(buffered / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)" }}></View>
+                    <Animated.View style={progressBarStyle}></Animated.View>
+                    <Animated.View style={progressButtonStyle}></Animated.View>
+                    <View style={{ flexDirection: "row" }}>
+                        <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(isDragging ? offset / (width - 60) * duration : position) ?? '0:00'}</Text>
+                        <View style={{ flexGrow: 1 }}></View>
+                        <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(duration) ?? '0:00'}</Text>
+                    </View>
+                </View>
+            </GestureDetector>
+        </View>
     );
 }
 
@@ -314,8 +380,17 @@ function RelatedComponent () {
     );
 }
 
+const interpolate = (start: number, end: number, pos: number): number => {
+    "worklet";
+    return Math.round(Math.min(Math.max((1 - pos) * start + pos * end, Math.min(start, end)), Math.max(start, end)));
+};
+
 function getThumbnail (obj: any) {
     return obj?.track?.basic_info?.thumbnail[0]?.url;
+}
+
+function getRGB (color: number): { r: number; g: number; b: number } {
+    return { r: (color & 0xff0000) >> 16, g: (color & 0x00ff00) >> 8, b: color & 0x0000ff };
 }
 
 export default Component;

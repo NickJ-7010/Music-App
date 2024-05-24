@@ -17,7 +17,8 @@ class YoutubeManager {
         unshuffledQueue: MusicTrackInfo[];
         shuffled: boolean;
         loop: number;
-        setState: Function;
+        setState: (stateNumber: number) => void;
+        jumpPlayer: (pos: number) => void;
     };
     playerControls: { previous: () => Promise<void>; next: () => Promise<void>; };
 
@@ -29,7 +30,8 @@ class YoutubeManager {
             unshuffledQueue: [],
             shuffled: false,
             loop: 0,
-            setState: () => { console.error('Called setState without initialized PlayerShelf'); }
+            setState: () => { console.error('Called setState without initialized PlayerShelf'); },
+            jumpPlayer: () => { console.error('Called setPlayerState without initialized PlayerShelf'); }
         }; 
 
         this.awaitCallbacks = [];

@@ -158,6 +158,7 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
 
                             youtube.player.queue = [info];
                             youtube.player.setState(Date.now());
+                            youtube.player.jumpPlayer(1);
 
                             await TrackPlayer.setQueue([{
                                 url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
