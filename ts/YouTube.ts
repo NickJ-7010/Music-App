@@ -1,4 +1,4 @@
-import TrackPlayer, { Capability } from "react-native-track-player";
+import TrackPlayer, { Capability, State } from "react-native-track-player";
 import { BrowseEndpoint } from "./YouTubeLib/core/endpoints";
 import SearchSuggestionsSection from "./YouTubeLib/parser/classes/SearchSuggestionsSection";
 import { ObservedArray } from "./YouTubeLib/parser/helpers";
@@ -17,10 +17,11 @@ class YoutubeManager {
         unshuffledQueue: MusicTrackInfo[];
         shuffled: boolean;
         loop: number;
+        autoplay: boolean;
         setState: (stateNumber: number) => void;
         jumpPlayer: (pos: number) => void;
     };
-    playerControls: { previous: () => Promise<void>; next: () => Promise<void>; };
+    playerControls: { onTrackEnd: () => Promise<void>; play: () => Promise<void>; previous: () => Promise<void>; next: () => Promise<void>; };
 
     constructor() {
         this.player = {
@@ -30,6 +31,7 @@ class YoutubeManager {
             unshuffledQueue: [],
             shuffled: false,
             loop: 0,
+            autoplay: false,
             setState: () => { console.error('Called setState without initialized PlayerShelf'); },
             jumpPlayer: () => { console.error('Called setPlayerState without initialized PlayerShelf'); }
         }; 
@@ -39,6 +41,20 @@ class YoutubeManager {
         this.setup();
 
         this.playerControls = {
+            onTrackEnd: async () => {
+                const state = await TrackPlayer.getPlaybackState();
+
+                if (this.player.currentIndex == this.player.queue.length - 1 && !this.player.autoplay) {
+                    if (state.state == State.Playing) {
+                        await TrackPlayer.pause(); //@ts-ignore
+                        await TrackPlayer.seekTo(this.player.queue[this.player.currentIndex].track.basic_info.duration);
+                        this.registerMetadata();
+                    }
+                }
+            },
+            play: async () => {
+
+            },
             next: async () => {
                 await TrackPlayer.skipToNext();
             },
@@ -110,6 +126,15 @@ class YoutubeManager {
         if (updateBackground) this.backgroundUrl = res.data.background.musicThumbnailRenderer.thumbnail.thumbnails[0].url;
 
         return new HomeFeed(res, this.api.actions);
+    }
+
+    async registerMetadata () {
+        await TrackPlayer.updateMetadataForTrack(0, {
+            title: this.player.queue[this.player.currentIndex].track.basic_info.title,
+            artist: this.player.queue[this.player.currentIndex].track.basic_info.author, //@ts-ignore
+            artwork: this.player.queue[this.player.currentIndex].track.basic_info.thumbnail[0].url,
+            duration: this.player.queue[this.player.currentIndex].track.basic_info.duration
+        });
     }
 }
 

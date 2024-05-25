@@ -3,7 +3,15 @@ import youtube from "./YouTube";
 
 module.exports = async function() {
     TrackPlayer.addEventListener(Event.RemotePlay, async () => {
-        await TrackPlayer.play();
+        const progress = await TrackPlayer.getProgress();
+        if (progress.position == Math.round(progress.duration / 2)) {
+            await TrackPlayer.seekTo(0);
+            setTimeout(async () => { // Hacky fix but idk a better fix right now
+                await TrackPlayer.play();
+            }, 1000);
+        } else {
+            await TrackPlayer.play();
+        }
     });
     TrackPlayer.addEventListener(Event.RemoteNext, async () => {
         youtube.playerControls.next();
@@ -18,13 +26,8 @@ module.exports = async function() {
         await TrackPlayer.seekTo(event.position);
     });
     TrackPlayer.addEventListener(Event.PlaybackState, event => {
-        if (event.state == State.Ready) {
-            TrackPlayer.updateMetadataForTrack(0, {
-                title: youtube.player.queue[youtube.player.currentIndex].track.basic_info.title,
-                artist: youtube.player.queue[youtube.player.currentIndex].track.basic_info.author, //@ts-ignore
-                artwork: youtube.player.queue[youtube.player.currentIndex].track.basic_info.thumbnail[0].url,
-                duration: youtube.player.queue[youtube.player.currentIndex].track.basic_info.duration
-            });
+        if (event.state == State.Ready || event.state == State.Playing) {
+            youtube.registerMetadata();
         }
     });
 }
