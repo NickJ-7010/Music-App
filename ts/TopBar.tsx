@@ -13,7 +13,7 @@ type topBarProps = {
 function Component ({ navigation }: topBarProps) {
     return (
         <View style={{ flexDirection: "row", padding: 20, paddingTop: 10, marginBottom: 10 }}>
-            <Text style={{ color: "#00D19D", fontSize: 32, fontWeight: 700 }}>Music App</Text>
+            <Text style={{ color: "#008947", fontSize: 32, fontWeight: 700 }}>Music App</Text>
             <View style={{ flexGrow: 1 }}></View>
             <Pressable onPress={() => { navigation.push('Search') }}>
                 <Svg

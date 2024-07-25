@@ -7,7 +7,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
 import youtube from "./YouTube";
-import TrackPlayer, { usePlaybackState, useProgress, State, RepeatMode } from "react-native-track-player";
+import TrackPlayer, { usePlaybackState, useProgress, State } from "react-native-track-player";
 import * as MCU from "@material/material-color-utilities";
 import LinearGradient from "react-native-linear-gradient";
 import AnimateableText from "react-native-animateable-text";
@@ -39,7 +39,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     youtube.player.setState = setState;
     youtube.player.jumpPlayer = jumpPlayer;
 
-    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.primary.slice(1) ?? "00D19D", 16)));
+    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.primary.slice(1) ?? "008947", 16)));
     hct.chroma = 1000;
     const tones = MCU.TonalPalette.fromHct(hct);
     

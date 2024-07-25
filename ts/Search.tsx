@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     FlatList,
     Image,
@@ -15,7 +15,8 @@ import Svg, { Path } from 'react-native-svg';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TrackPlayer from 'react-native-track-player';
+import Modal from "react-native-modal";
+import IconRender from './IconRender';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -43,7 +44,7 @@ function Component ({ navigation }: any) {
                         fill={"#ffffff"}>
                         <Path d="m20.87 20.17-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" />
                     </Svg>
-                    {item.suggestion.runs.map((run: any) => <Text key={run.text + item.suggestion.text} style={{ color: "#ffffff", fontSize: 16, fontWeight: run.bold ? "bold" : "regular" }}>{run.text}</Text>)}
+                    {item.suggestion.runs.map((run: any) => <Text key={run.text} style={{ color: "#ffffff", fontSize: 16, fontWeight: run.bold ? "bold" : "regular" }}>{run.text}</Text>)}
                     <View style={{ flexGrow: 1 }}></View>
                     <Svg
                         width={24}
@@ -145,43 +146,9 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                         <View style={{ flexGrow: 1 }}></View>
                         <View style={{ borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.25)", padding: 3, paddingLeft: 8, paddingRight: 8, borderRadius: 50 }}><Text style={{ color: "#ffffff", fontWeight: 600 }}>More</Text></View>
                     </Pressable>
-                    {shelf.contents.map((item: any) => <View key={item.id} style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
-                        <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
-                        <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                            <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
-                            <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
-                        </View>
-                        <Pressable onPress={async () => { 
-                            const info = await youtube.getInfo(item.id);
-
-                            //console.log(JSON.stringify(info));
-
-                            youtube.player.queue = [info];
-                            youtube.player.setState(Date.now());
-                            youtube.player.jumpPlayer(1);
-
-                            await TrackPlayer.setQueue([{
-                                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
-                                title: info.track.basic_info.title,
-                                artist: info.track.basic_info.author, //@ts-ignore
-                                artwork: info.track.basic_info.thumbnail[0].url,
-                                duration: info.track.basic_info.duration
-                            }]);
-
-                            // Start playing it
-                            await TrackPlayer.play();
-                        }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
-                            <View style={{ flexGrow: 1, justifyContent: "center" }}>
-                                <Svg
-                                    width={24}
-                                    height={24}
-                                    viewBox='0 -960 960 960'
-                                    fill={"#ffffff"}>
-                                    <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
-                                </Svg>
-                            </View>
-                        </Pressable>
-                    </View>)}
+                    {shelf.contents.map((item: any) =>
+                        <ItemRender key={item.id} data={item} />
+                    )}
                 </View> :
                 <View key={shelf.title.text}>
                     <View style={{ padding: 15 }}>
@@ -190,25 +157,11 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                     <View style={{ marginLeft: 15, marginRight: 15, backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 5 }}>
                         {((content: any) => { return shelf.contents ? <>
                             <View style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: 5 }}>{content}</View>
-                            <View style={{ padding: 15, paddingTop: 0, paddingRight: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text key={item.text.text} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, marginTop: 15 }}>{item.text.text}</Text> :
-                                <View style={{ marginTop: 15, flexDirection: "row", alignItems: "center" }}>
-                                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
-                                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
-                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                            <View style={{ paddingBottom: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text key={item.text.text} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, margin: 15, marginBottom: 5 }}>{item.text.text}</Text> :
+                                <View key={item.id} style={{ marginTop: 5, marginRight: 5 }}>
+                                    <ItemRender data={item} />
                                 </View>
-                                <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
-                                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
-                                        <Svg
-                                            width={24}
-                                            height={24}
-                                            viewBox='0 -960 960 960'
-                                            fill={"#ffffff"}>
-                                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
-                                        </Svg>
-                                    </View>
-                                </Pressable>
-                            </View>)}</View>
+                            )}</View>
                         </> : content })(
                         <View style={{ padding: 15, paddingRight: 10 }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -230,12 +183,14 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                                 </Pressable>
                             </View>
                             <View style={{ flexDirection: "row", marginTop: 15, marginRight: 5 }}>
-                                <Pressable style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, alignItems: "center" }}>
-                                    <Text style={{ fontWeight: 700 }}>{shelf.buttons[0].text}</Text>
+                                <Pressable onPress={() => { console.log(JSON.stringify(shelf)) }} style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                    <IconRender icon={shelf.buttons[0].icon_type} width={24} fill="#000000"></IconRender>
+                                    <Text style={{ fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[0].text}</Text>
                                 </Pressable>
                                 <View style={{ width: 15 }}></View>
-                                <Pressable style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, alignItems: "center" }}>
-                                    <Text style={{ color: "#ffffff", fontWeight: 700 }}>{shelf.buttons[1].text}</Text>
+                                <Pressable style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                    <IconRender icon={shelf.buttons[1].icon_type} width={24}></IconRender>
+                                    <Text style={{ color: "#ffffff", fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[1].text}</Text>
                                 </Pressable>
                             </View>
                         </View>)}
@@ -259,6 +214,78 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
             </View>
         );
     }
+}
+
+function ItemRender ({ data }: { data: any }) {
+    const [isVisible, setVisible] = useState(false);
+
+    return (
+        <>
+            <Modal
+                key={'modal' + data.id}
+                isVisible={isVisible}
+                onBackdropPress={() => setVisible(false)}
+                onSwipeComplete={() => setVisible(false)}
+                swipeDirection="down"
+                swipeThreshold={10}
+                style={{ margin: 0 }}>
+                <View style={{ position: "absolute", bottom: 0, width: "100%", backgroundColor: "#202022", borderRadius: 20, overflow: "hidden", paddingBottom: 32 }}>
+                    <View style={{ padding: 15, width: "100%", backgroundColor: "rgba(255, 255, 255, 0.05)", borderBottomWidth: 1, borderBlockColor: "rgba(255, 255, 255, 0.1)", flexDirection: "row", alignItems: "center" }}>
+                        <Image width={50} height={50} style={{ borderRadius: 5 }} source={{ uri: data.thumbnail.contents[0].url }} />
+                        <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                            <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
+                            <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                        </View>
+                        <Pressable onPress={() => setVisible(false)} style={{ height: "100%" }}>
+                            <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                                <Svg
+                                    width={36}
+                                    height={36}
+                                    viewBox='0 -960 960 960'
+                                    fill={"#ffffff"}>
+                                    <Path d="M256-227.69 227.69-256l224-224-224-224L256-732.31l224 224 224-224L732.31-704l-224 224 224 224L704-227.69l-224-224-224 224Z" />
+                                </Svg>
+                            </View>
+                        </Pressable>
+                    </View>
+                    {data.menu.items.filter((item: any) => item.text != undefined).map((item: any, index: any) =>
+                        <Pressable key={index} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
+                            <IconRender key={item.icon_type == undefined ? console.log(item) + '' : ''} icon={item.icon_type} width={24}></IconRender>
+                            <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
+                        </Pressable>
+                    )}
+                </View>
+            </Modal>
+            <Pressable key={'pressable' + data.id} onPress={() => handlePress(data)} onLongPress={() => setVisible(true)}>
+                <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
+                    <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />
+                    <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                        <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
+                        <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                    </View>
+                    <Pressable onPress={() => setVisible(true)} onLongPress={() => setVisible(true)} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                        <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                            <Svg
+                                width={24}
+                                height={24}
+                                viewBox='0 -960 960 960'
+                                fill={"#ffffff"}>
+                                <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
+                            </Svg>
+                        </View>
+                    </Pressable>
+                </View>
+            </Pressable>
+        </>
+    );
+}
+
+function handlePress (data: any) {
+    console.log(data);
+}
+
+function handleLongPress (data: any) {
+
 }
 
 interface MoreResultsProps {
@@ -296,24 +323,7 @@ function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps
     return (
         <FlatList
             data={state.contents}
-            renderItem={({ item }) => <View key={item.id} style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
-                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: item.thumbnail.contents[0].url }} />
-                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.flex_columns[0].title.text}</Text>
-                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
-                </View>
-                <Pressable onPress={() => { console.log(item.id); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
-                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
-                        <Svg
-                            width={24}
-                            height={24}
-                            viewBox='0 -960 960 960'
-                            fill={"#ffffff"}>
-                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
-                        </Svg>
-                    </View>
-                </Pressable>
-            </View>}
+            renderItem={({ item }) => <ItemRender data={item} />}
             ListHeaderComponent={<View style={{ flexDirection: "row" }}>
                 <Pressable onPress={() => applyFilter("")} style={{ margin: 10, marginRight: 5, padding: 5, justifyContent: "center", backgroundColor: "#ffffff", borderColor: "#ffffff", borderWidth: 1, borderRadius: 7.5 }}>
                     <Svg
