@@ -44,9 +44,9 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     const tones = MCU.TonalPalette.fromHct(hct);
     
     const palette = [
-        getRGB(tones.tone(12)),
-        getRGB(tones.tone(2)),
-        getRGB(tones.tone(20))
+        getRGB(tones.tone(15)),
+        getRGB(tones.tone(5)),
+        getRGB(tones.tone(25))
     ];
 
     const gesture = Gesture.Pan()

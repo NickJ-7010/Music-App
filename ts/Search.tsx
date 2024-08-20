@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Modal from "react-native-modal";
 import IconRender from './IconRender';
+import TrackPlayer from 'react-native-track-player';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -163,7 +164,7 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                                 </View>
                             )}</View>
                         </> : content })(
-                        <View style={{ padding: 15, paddingRight: 10 }}>
+                        <Pressable onPress={() => handlePress(shelf)} style={{ padding: 15, paddingRight: 10 }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
@@ -193,9 +194,10 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                                     <Text style={{ color: "#ffffff", fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[1].text}</Text>
                                 </Pressable>
                             </View>
-                        </View>)}
+                        </Pressable>)}
                     </View>
                 </View>)}
+                <View style={{ height: 75 }}></View>
             </ScrollView>
         );
     } else {
@@ -219,6 +221,8 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
 function ItemRender ({ data }: { data: any }) {
     const [isVisible, setVisible] = useState(false);
 
+    const thumbnail = data.thumbnail.contents[0];
+
     return (
         <>
             <Modal
@@ -230,8 +234,8 @@ function ItemRender ({ data }: { data: any }) {
                 swipeThreshold={10}
                 style={{ margin: 0 }}>
                 <View style={{ position: "absolute", bottom: 0, width: "100%", backgroundColor: "#202022", borderRadius: 20, overflow: "hidden", paddingBottom: 32 }}>
-                    <View style={{ padding: 15, width: "100%", backgroundColor: "rgba(255, 255, 255, 0.05)", borderBottomWidth: 1, borderBlockColor: "rgba(255, 255, 255, 0.1)", flexDirection: "row", alignItems: "center" }}>
-                        <Image width={50} height={50} style={{ borderRadius: 5 }} source={{ uri: data.thumbnail.contents[0].url }} />
+                    <View style={{ padding: 15, height: 80, width: "100%", backgroundColor: "rgba(255, 255, 255, 0.05)", borderBottomWidth: 1, borderBlockColor: "rgba(255, 255, 255, 0.1)", flexDirection: "row", alignItems: "center" }}>
+                        <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 5 }} source={{ uri: thumbnail.url }} />
                         <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                             <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                             <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
@@ -249,16 +253,16 @@ function ItemRender ({ data }: { data: any }) {
                         </Pressable>
                     </View>
                     {data.menu.items.filter((item: any) => item.text != undefined).map((item: any, index: any) =>
-                        <Pressable key={index} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
-                            <IconRender key={item.icon_type == undefined ? console.log(item) + '' : ''} icon={item.icon_type} width={24}></IconRender>
+                        <Pressable key={index} onPress={() => handleAction(item)} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
+                            <IconRender icon={item.icon_type} width={24}></IconRender>
                             <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
                         </Pressable>
                     )}
                 </View>
             </Modal>
             <Pressable key={'pressable' + data.id} onPress={() => handlePress(data)} onLongPress={() => setVisible(true)}>
-                <View style={{ padding: 5, paddingLeft: 15, flexDirection: "row", alignItems: "center" }}>
-                    <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />
+                <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
+                    <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 3 }} source={{ uri: thumbnail.url }} />
                     <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                         <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                         <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
@@ -280,12 +284,32 @@ function ItemRender ({ data }: { data: any }) {
     );
 }
 
-function handlePress (data: any) {
-    console.log(data);
+async function handlePress (data: any) {
+    const endpoint = data.endpoint ?? data.overlay?.content?.endpoint;
+
+    if (endpoint.metadata.api_url == '/player') {
+        const info = await youtube.getInfo(endpoint.payload.videoId);
+
+        //console.log(JSON.stringify(info));
+
+        youtube.player.queue = [info];
+        youtube.player.jumpPlayer(1);
+        youtube.player.setState(Date.now());
+
+        await TrackPlayer.setQueue([{
+            url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
+            title: info.track.basic_info.title,
+            artist: info.track.basic_info.author, //@ts-ignore
+            artwork: info.track.basic_info.thumbnail[0].url,
+            duration: info.track.basic_info.duration
+        }]);
+    } else {
+        console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
+    }
 }
 
-function handleLongPress (data: any) {
-
+function handleAction (data: any) {
+    console.log(data);
 }
 
 interface MoreResultsProps {

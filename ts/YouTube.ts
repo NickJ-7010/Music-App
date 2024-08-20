@@ -1,9 +1,7 @@
+import 'event-target-polyfill';
 import TrackPlayer, { Capability, State } from "react-native-track-player";
-import { BrowseEndpoint } from "./YouTubeLib/core/endpoints";
-import SearchSuggestionsSection from "./YouTubeLib/parser/classes/SearchSuggestionsSection";
-import { ObservedArray } from "./YouTubeLib/parser/helpers";
-import { HomeFeed, Search, TrackInfo } from "./YouTubeLib/parser/ytmusic";
-import Innertube from "./YouTubeLib/platform/node";
+import SearchSuggestionsSection from "../node_modules/youtubei.js/dist/src/parser/classes/SearchSuggestionsSection";
+import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints, Parser } from "youtubei.js";
 import ImageColors from "react-native-image-colors";
 
 class YoutubeManager {
@@ -83,10 +81,10 @@ class YoutubeManager {
             });
         } catch (e) { console.log(e) }
 
-        this.api = await Innertube.create({ fetch: async (input: any, init?: RequestInit) => {
-            //@ts-ignore
-            return fetch(input.url ?? input, { ...init, method: input.method, reactNative: { textStreaming: true } });
-        } });
+        this.api = await Innertube.create({
+            cache: new UniversalCache(false),
+            generate_session_locally: true,
+        });
 
         this.awaitCallbacks.forEach(callback => callback(0));
         this.awaitCallbacks = [];
@@ -99,12 +97,12 @@ class YoutubeManager {
         });
     }
 
-    async getSearchSuggestions (query: string): Promise<ObservedArray<SearchSuggestionsSection>> {
+    async getSearchSuggestions (query: string): Promise<Helpers.ObservedArray<SearchSuggestionsSection>> {
         await this.awaitInit();
         return await this.api.music.getSearchSuggestions(query);
     }
 
-    async getSearch (query: string): Promise<Search> {
+    async getSearch (query: string): Promise<YTMusic.Search> {
         await this.awaitInit();
         return await this.api.music.search(query);
     }
@@ -116,16 +114,17 @@ class YoutubeManager {
         return { colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
     } 
 
-    async getHome (updateBackground: boolean): Promise<HomeFeed> {
+    async getHome (updateBackground: boolean): Promise<YTMusic.HomeFeed> {
         await this.awaitInit();
-        const res = await this.api.actions.execute('/browse', BrowseEndpoint.build({
+        const res = await this.api.actions.execute('/browse', Endpoints.BrowseEndpoint.build({
             browse_id: 'FEmusic_home',
             client: 'YTMUSIC'
         }));
 
-        if (updateBackground) this.backgroundUrl = res.data.background.musicThumbnailRenderer.thumbnail.thumbnails[0].url;
+        // TODO: Add code for caching the image for offline functionality
+        if (updateBackground) this.backgroundUrl = res.data.background?.musicThumbnailRenderer.thumbnail.thumbnails[0].url;
 
-        return new HomeFeed(res, this.api.actions);
+        return new YTMusic.HomeFeed(res, this.api.actions);
     }
 
     async registerMetadata () {
@@ -140,7 +139,7 @@ class YoutubeManager {
 
 interface MusicTrackInfo {
     colors: any;
-    track: TrackInfo
+    track: YTMusic.TrackInfo
 }
 
 export default new YoutubeManager();
