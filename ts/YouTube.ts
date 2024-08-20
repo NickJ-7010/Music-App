@@ -1,7 +1,7 @@
 import 'event-target-polyfill';
 import TrackPlayer, { Capability, State } from "react-native-track-player";
 import SearchSuggestionsSection from "../node_modules/youtubei.js/dist/src/parser/classes/SearchSuggestionsSection";
-import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints, Parser } from "youtubei.js";
+import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints } from "youtubei.js";
 import ImageColors from "react-native-image-colors";
 
 class YoutubeManager {
