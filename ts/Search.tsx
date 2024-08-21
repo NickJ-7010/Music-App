@@ -164,9 +164,9 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                                 </View>
                             )}</View>
                         </> : content })(
-                        <Pressable onPress={() => handlePress(shelf)} style={{ padding: 15, paddingRight: 10 }}>
+                        <Pressable onPress={() => youtube.handlePress(shelf)} style={{ padding: 15, paddingRight: 10 }}>
                             <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <Image width={50} height={50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
+                                <Image width={50} height={shelf.thumbnail.contents[0].height / shelf.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{shelf.title.text}</Text>
                                     <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{shelf.subtitle.text}</Text>
@@ -253,14 +253,14 @@ function ItemRender ({ data }: { data: any }) {
                         </Pressable>
                     </View>
                     {data.menu.items.filter((item: any) => item.text != undefined).map((item: any, index: any) =>
-                        <Pressable key={index} onPress={() => handleAction(item)} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
+                        <Pressable key={index} onPress={() => youtube.handleAction(item)} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
                             <IconRender icon={item.icon_type} width={24}></IconRender>
                             <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
                         </Pressable>
                     )}
                 </View>
             </Modal>
-            <Pressable key={'pressable' + data.id} onPress={() => handlePress(data)} onLongPress={() => setVisible(true)}>
+            <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data)} onLongPress={() => setVisible(true)}>
                 <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                     <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 3 }} source={{ uri: thumbnail.url }} />
                     <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
@@ -282,34 +282,6 @@ function ItemRender ({ data }: { data: any }) {
             </Pressable>
         </>
     );
-}
-
-async function handlePress (data: any) {
-    const endpoint = data.endpoint ?? data.overlay?.content?.endpoint;
-
-    if (endpoint.metadata.api_url == '/player') {
-        const info = await youtube.getInfo(endpoint.payload.videoId);
-
-        //console.log(JSON.stringify(info));
-
-        youtube.player.queue = [info];
-        youtube.player.jumpPlayer(1);
-        youtube.player.setState(Date.now());
-
-        await TrackPlayer.setQueue([{
-            url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
-            title: info.track.basic_info.title,
-            artist: info.track.basic_info.author, //@ts-ignore
-            artwork: info.track.basic_info.thumbnail[0].url,
-            duration: info.track.basic_info.duration
-        }]);
-    } else {
-        console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
-    }
-}
-
-function handleAction (data: any) {
-    console.log(data);
 }
 
 interface MoreResultsProps {

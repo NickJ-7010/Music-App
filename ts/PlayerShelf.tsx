@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Dimensions, Image } from "react-native";
+import { View, Text, Pressable, Dimensions, Image, ScrollView } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, runOnJS, useDerivedValue, useAnimatedProps } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { NavigationContainer } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
-import youtube from "./YouTube";
+import youtube, { MusicTrackInfo } from "./YouTube";
 import TrackPlayer, { usePlaybackState, useProgress, State } from "react-native-track-player";
 import * as MCU from "@material/material-color-utilities";
 import LinearGradient from "react-native-linear-gradient";
 import AnimateableText from "react-native-animateable-text";
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -39,14 +40,29 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     youtube.player.setState = setState;
     youtube.player.jumpPlayer = jumpPlayer;
 
-    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(youtube.player.queue[youtube.player.currentIndex]?.colors?.primary.slice(1) ?? "008947", 16)));
-    hct.chroma = 1000;
+    const colorData = youtube.player.queue[youtube.player.currentIndex]?.colors;
+    const colors = [colorData?.background, colorData?.primary, colorData?.secondary, colorData?.detail];
+    let color = colors[0];
+    
+    if (color) {
+        for (var i = 1; i < colors.length; i++) {
+            const a = getRGB(parseInt(color.slice(1), 16));
+            const b = getRGB(parseInt(colors[i].slice(1), 16));
+            if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
+                color = colors[i];
+            }
+        }
+    }
+
+    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(color?.slice(1) ?? "008947", 16)));
+    hct.chroma = 65;
     const tones = MCU.TonalPalette.fromHct(hct);
     
     const palette = [
         getRGB(tones.tone(15)),
         getRGB(tones.tone(5)),
-        getRGB(tones.tone(25))
+        getRGB(tones.tone(25)),
+        getRGB(tones.tone(26))
     ];
 
     const gesture = Gesture.Pan()
@@ -291,7 +307,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                             <Animated.View style={dragIndicator}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></Animated.View> 
                             <NavigationContainer independent={true}>
                                 <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, onPress: () => jumpPlayer(2), indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
-                                    <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent /></Animated.View>} />
+                                    <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent palette={palette} /></Animated.View>} />
                                     <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
                                     <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
                                 </Tab.Navigator>
@@ -375,13 +391,61 @@ function ProgressView () {
     );
 }
 
-function UpNextComponent () {
+function UpNextComponent ({ palette }: { palette: any[] }) {
+    const [stateNum, setState] = useState(0);
+
+    const renderItem = function ({ item, drag, isActive, getIndex }: RenderItemParams<MusicTrackInfo>) {
+        return <View style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? '#' + palette[3].r.toString(16).padStart(2, '0') + palette[3].g.toString(16).padStart(2, '0') + palette[3].b.toString(16).padStart(2, '0') : 'transparent' }}>
+            { /* @ts-ignore */ }
+            <Image width={50} height={item.track.basic_info.thumbnail[0].height / item.track.basic_info.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: item.track.basic_info.thumbnail[0].url }} />
+            <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.track.basic_info.title}</Text>
+                { /* @ts-ignore */ }
+                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.track.basic_info.author + ' • ' + Math.floor(item.track.basic_info.duration / 60) + ':' + (item.track.basic_info.duration % 60).toString().padStart(2, '0')}</Text>
+            </View>
+            <Pressable onPress={drag} onLongPress={drag} style={{ height: "100%", paddingLeft: 5 }}>
+                <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                    <Svg
+                        width={32}
+                        height={32}
+                        viewBox='0 -960 960 960'
+                        fill={"#ffffff"}>
+                        <Path d="M200-380v-40h560v40H200Zm0-160v-40h560v40H200Z" />
+                    </Svg>
+                </View>
+            </Pressable>
+        </View>
+    }
+
     return (
-        <View><Text>UP NEXT</Text></View>
+        <ScrollView style={{ paddingTop: 10 }}>
+            <DraggableFlatList
+                scrollEnabled={false}
+                data={youtube.player.queue}
+                onDragEnd={(data) => {
+                    youtube.player.queue = data.data;
+                    if (data.from == youtube.player.currentIndex) {
+                        youtube.player.currentIndex = data.to;
+                    } else if (data.from > youtube.player.currentIndex && data.to <= youtube.player.currentIndex) {
+                        youtube.player.currentIndex++;
+                    } else if (data.from < youtube.player.currentIndex && data.to > youtube.player.currentIndex) {
+                        youtube.player.currentIndex--;
+                    }
+                    setState(Date.now());
+                }}
+                keyExtractor={(item, index) => 'key-' + item.track.basic_info.id + index}
+                renderItem={renderItem}
+            />
+            <View style={{ height: 50, marginTop: 10, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.background ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.primary ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.secondary ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.detail ?? "#008947" }}></View>
+        </ScrollView>
     );
 }
 
 function LyricsComponent () {
+    //console.log('refresh');
     return (
         <View><Text>LYRICS</Text></View>
     );

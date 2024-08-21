@@ -135,9 +135,39 @@ class YoutubeManager {
             duration: this.player.queue[this.player.currentIndex].track.basic_info.duration
         });
     }
+
+    async handlePress (data: any) {
+        const endpoint = data.endpoint ?? data.overlay?.content?.endpoint;
+    
+        if (endpoint.metadata.api_url == '/player') {
+            const info = await this.getInfo(endpoint.payload.videoId);
+    
+            //console.log(JSON.stringify(info));
+    
+            this.player.queue = [info, info, info];
+            this.player.jumpPlayer(1);
+            this.player.setState(Date.now());
+    
+            await TrackPlayer.setQueue([{
+                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(this.api.session.player),
+                title: info.track.basic_info.title,
+                artist: info.track.basic_info.author, //@ts-ignore
+                artwork: info.track.basic_info.thumbnail[0].url,
+                duration: info.track.basic_info.duration
+            }]);
+            
+            await TrackPlayer.play();
+        } else {
+            console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
+        }
+    }
+    
+    async handleAction (data: any) {
+        console.log(data);
+    }
 }
 
-interface MusicTrackInfo {
+export interface MusicTrackInfo {
     colors: any;
     track: YTMusic.TrackInfo
 }
