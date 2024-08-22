@@ -15,9 +15,8 @@ import Svg, { Path } from 'react-native-svg';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Modal from "react-native-modal";
 import IconRender from './IconRender';
-import TrackPlayer from 'react-native-track-player';
+import TrackModal from './TrackModal';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -65,11 +64,11 @@ function Component ({ navigation }: any) {
         if (!filter.length) {
             content =
             <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.15)", borderBottomWidth: 1 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
-                <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} applyFilter={setFilter} />} />
+                <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} applyFilter={setFilter} navigation={navigation} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
             </Tab.Navigator>
         } else {
-            content = <MoreResults startingResults={results} filter={filter} applyFilter={setFilter} />
+            content = <MoreResults startingResults={results} filter={filter} applyFilter={setFilter} navigation={navigation} />
         }
     }
 
@@ -129,9 +128,12 @@ function Component ({ navigation }: any) {
 interface SearchResultsProps {
     results: any;
     applyFilter: Function;
+    navigation: any;
 }
 
-function SearchResults ({ results, applyFilter }: SearchResultsProps) {
+function SearchResults ({ results, applyFilter, navigation }: SearchResultsProps) {
+    const [isVisible, setVisible] = useState(false);
+    
     if (results.header) {
         return (
             <ScrollView>
@@ -148,7 +150,7 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                         <View style={{ borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.25)", padding: 3, paddingLeft: 8, paddingRight: 8, borderRadius: 50 }}><Text style={{ color: "#ffffff", fontWeight: 600 }}>More</Text></View>
                     </Pressable>
                     {shelf.contents.map((item: any) =>
-                        <ItemRender key={item.id} data={item} />
+                        <ItemRender key={item.id} data={item} navigation={navigation} />
                     )}
                 </View> :
                 <View key={shelf.title.text}>
@@ -160,41 +162,38 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
                             <View style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: 5 }}>{content}</View>
                             <View style={{ paddingBottom: 10 }}>{shelf.contents.map((item: any) => item.type == "Message" ? <Text key={item.text.text} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500, margin: 15, marginBottom: 5 }}>{item.text.text}</Text> :
                                 <View key={item.id} style={{ marginTop: 5, marginRight: 5 }}>
-                                    <ItemRender data={item} />
+                                    <ItemRender data={item} navigation={navigation} />
                                 </View>
                             )}</View>
                         </> : content })(
-                        <Pressable onPress={() => youtube.handlePress(shelf)} style={{ padding: 15, paddingRight: 10 }}>
-                            <View style={{ flexDirection: "row", alignItems: "center" }}>
-                                <Image width={50} height={shelf.thumbnail.contents[0].height / shelf.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
-                                <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{shelf.title.text}</Text>
-                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{shelf.subtitle.text}</Text>
-                                </View>
-                                <Pressable onPress={() => { console.log(shelf.title.text); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
-                                    <View style={{ flexGrow: 1, justifyContent: "center" }}>
-                                        <Svg
-                                            width={24}
-                                            height={24}
-                                            viewBox='0 -960 960 960'
-                                            fill={"#ffffff"}>
-                                            <Path d="M480-218.46q-16.5 0-28.25-11.75T440-258.46q0-16.5 11.75-28.25T480-298.46q16.5 0 28.25 11.75T520-258.46q0 16.5-11.75 28.25T480-218.46ZM480-440q-16.5 0-28.25-11.75T440-480q0-16.5 11.75-28.25T480-520q16.5 0 28.25 11.75T520-480q0 16.5-11.75 28.25T480-440Zm0-221.54q-16.5 0-28.25-11.75T440-701.54q0-16.5 11.75-28.25T480-741.54q16.5 0 28.25 11.75T520-701.54q0 16.5-11.75 28.25T480-661.54Z" />
-                                        </Svg>
+                        <>
+                            <TrackModal data={shelf} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+                            <Pressable onPress={() => youtube.handlePress(shelf, navigation)} onLongPress={() => { shelf.end_icon_type ? youtube.handlePress(shelf, navigation) : setVisible(true); }} style={{ padding: 15, paddingRight: 10 }}>
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <Image width={50} height={shelf.thumbnail.contents[0].height / shelf.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
+                                    <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
+                                        <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{shelf.title.text}</Text>
+                                        <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{shelf.subtitle.text}</Text>
                                     </View>
-                                </Pressable>
-                            </View>
-                            <View style={{ flexDirection: "row", marginTop: 15, marginRight: 5 }}>
-                                <Pressable onPress={() => { console.log(JSON.stringify(shelf)) }} style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
-                                    <IconRender icon={shelf.buttons[0].icon_type} width={24} fill="#000000"></IconRender>
-                                    <Text style={{ fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[0].text}</Text>
-                                </Pressable>
-                                <View style={{ width: 15 }}></View>
-                                <Pressable style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
-                                    <IconRender icon={shelf.buttons[1].icon_type} width={24}></IconRender>
-                                    <Text style={{ color: "#ffffff", fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[1].text}</Text>
-                                </Pressable>
-                            </View>
-                        </Pressable>)}
+                                    <Pressable onPress={() => { shelf.end_icon_type ? youtube.handlePress(shelf, navigation) : setVisible(true); }} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
+                                        <View style={{ flexGrow: 1, justifyContent: "center" }}>
+                                            <IconRender icon={shelf.end_icon_type ?? 'MENU'} width={shelf.end_icon_type ? 20 : 24}></IconRender>
+                                        </View>
+                                    </Pressable>
+                                </View>
+                                <View style={{ flexDirection: "row", marginTop: 15, marginRight: 5 }}>
+                                    <Pressable onPress={() => { youtube.handleAction(shelf, navigation) }} style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                        <IconRender icon={shelf.buttons[0].icon_type} width={24} fill="#000000"></IconRender>
+                                        <Text style={{ fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[0].text}</Text>
+                                    </Pressable>
+                                    <View style={{ width: 15 }}></View>
+                                    <Pressable onPress={() => { youtube.handleAction(shelf, navigation) }} style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                        <IconRender icon={shelf.buttons[1].icon_type} width={24}></IconRender>
+                                        <Text style={{ color: "#ffffff", fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[1].text}</Text>
+                                    </Pressable>
+                                </View>
+                            </Pressable>
+                        </>)}
                     </View>
                 </View>)}
                 <View style={{ height: 75 }}></View>
@@ -218,49 +217,15 @@ function SearchResults ({ results, applyFilter }: SearchResultsProps) {
     }
 }
 
-function ItemRender ({ data }: { data: any }) {
+function ItemRender ({ data, navigation }: { data: any, navigation: any }) {
     const [isVisible, setVisible] = useState(false);
 
     const thumbnail = data.thumbnail.contents[0];
 
     return (
         <>
-            <Modal
-                key={'modal' + data.id}
-                isVisible={isVisible}
-                onBackdropPress={() => setVisible(false)}
-                onSwipeComplete={() => setVisible(false)}
-                swipeDirection="down"
-                swipeThreshold={10}
-                style={{ margin: 0 }}>
-                <View style={{ position: "absolute", bottom: 0, width: "100%", backgroundColor: "#202022", borderRadius: 20, overflow: "hidden", paddingBottom: 32 }}>
-                    <View style={{ padding: 15, height: 80, width: "100%", backgroundColor: "rgba(255, 255, 255, 0.05)", borderBottomWidth: 1, borderBlockColor: "rgba(255, 255, 255, 0.1)", flexDirection: "row", alignItems: "center" }}>
-                        <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 5 }} source={{ uri: thumbnail.url }} />
-                        <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                            <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
-                            <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
-                        </View>
-                        <Pressable onPress={() => setVisible(false)} style={{ height: "100%" }}>
-                            <View style={{ flexGrow: 1, justifyContent: "center" }}>
-                                <Svg
-                                    width={36}
-                                    height={36}
-                                    viewBox='0 -960 960 960'
-                                    fill={"#ffffff"}>
-                                    <Path d="M256-227.69 227.69-256l224-224-224-224L256-732.31l224 224 224-224L732.31-704l-224 224 224 224L704-227.69l-224-224-224 224Z" />
-                                </Svg>
-                            </View>
-                        </Pressable>
-                    </View>
-                    {data.menu.items.filter((item: any) => item.text != undefined).map((item: any, index: any) =>
-                        <Pressable key={index} onPress={() => youtube.handleAction(item)} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
-                            <IconRender icon={item.icon_type} width={24}></IconRender>
-                            <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
-                        </Pressable>
-                    )}
-                </View>
-            </Modal>
-            <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data)} onLongPress={() => setVisible(true)}>
+            <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+            <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
                 <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                     <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 3 }} source={{ uri: thumbnail.url }} />
                     <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
@@ -287,10 +252,11 @@ function ItemRender ({ data }: { data: any }) {
 interface MoreResultsProps {
     startingResults: any;
     filter: string;
-    applyFilter: Function
+    applyFilter: Function;
+    navigation: any;
 }
 
-function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps) {
+function MoreResults ({ startingResults, filter, applyFilter, navigation }: MoreResultsProps) {
     const [state, setState]: [{ results: any, contents: any[], currentFilter: string }, any] = React.useState({ results: null, contents: [], currentFilter: filter });
     const [loading, setLoading] = React.useState(true);
 
@@ -319,7 +285,7 @@ function MoreResults ({ startingResults, filter, applyFilter }: MoreResultsProps
     return (
         <FlatList
             data={state.contents}
-            renderItem={({ item }) => <ItemRender data={item} />}
+            renderItem={({ item }) => <ItemRender data={item} navigation={navigation} />}
             ListHeaderComponent={<View style={{ flexDirection: "row" }}>
                 <Pressable onPress={() => applyFilter("")} style={{ margin: 10, marginRight: 5, padding: 5, justifyContent: "center", backgroundColor: "#ffffff", borderColor: "#ffffff", borderWidth: 1, borderRadius: 7.5 }}>
                     <Svg

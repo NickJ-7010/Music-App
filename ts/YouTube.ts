@@ -112,7 +112,19 @@ class YoutubeManager {
 
         //@ts-ignore
         return { colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
-    } 
+    }
+
+    async getArtist (artist_id: string): Promise<YTMusic.Artist> {
+        return await this.api.music.getArtist(artist_id);
+    }
+    
+    async getAlbum (album_id: string): Promise<YTMusic.Album> {
+        return await this.api.music.getAlbum(album_id);
+    }
+
+    async getPlaylist (playlist_id: string): Promise<YTMusic.Playlist> {
+        return await this.api.music.getPlaylist(playlist_id);
+    }
 
     async getHome (updateBackground: boolean): Promise<YTMusic.HomeFeed> {
         await this.awaitInit();
@@ -136,15 +148,15 @@ class YoutubeManager {
         });
     }
 
-    async handlePress (data: any) {
-        const endpoint = data.endpoint ?? data.overlay?.content?.endpoint;
+    async handlePress (data: any, navigation: any) {
+        const endpoint = data.endpoint ?? data.overlay?.content?.endpoint ?? data.on_tap;
     
         if (endpoint.metadata.api_url == '/player') {
             const info = await this.getInfo(endpoint.payload.videoId);
     
             //console.log(JSON.stringify(info));
     
-            this.player.queue = [info, info, info];
+            this.player.queue = [info];
             this.player.jumpPlayer(1);
             this.player.setState(Date.now());
     
@@ -158,12 +170,29 @@ class YoutubeManager {
             
             await TrackPlayer.play();
         } else {
-            console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
+            switch (endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType) {
+                case 'MUSIC_PAGE_TYPE_ARTIST':
+                    navigation.push('Artist', { id: endpoint.payload.browseId });
+                    break;
+                case 'MUSIC_PAGE_TYPE_ALBUM':
+                    navigation.push('Playlist', { id: endpoint.payload.browseId, type: 0 });
+                    break;
+                case 'MUSIC_PAGE_TYPE_PLAYLIST':
+                    navigation.push('Playlist', { id: endpoint.payload.browseId, type: 1 });
+                    break;
+                case 'MUSIC_PAGE_TYPE_USER_CHANNEL':
+                    navigation.push('Artist', { id: endpoint.payload.browseId });
+                    break;
+                default:
+                    console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
+                    break;
+            }
         }
     }
     
-    async handleAction (data: any) {
+    async handleAction (data: any, navigation: any) {
         console.log(data);
+        navigation.push('Search');
     }
 }
 
