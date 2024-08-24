@@ -6,7 +6,7 @@ import youtube from './YouTube'
 import Svg, { Path } from 'react-native-svg';
 
 function Component ({ data, isVisible, setVisible, navigation }: { data: any, isVisible: boolean, setVisible: React.Dispatch<React.SetStateAction<boolean>>, navigation: any }) {
-    const thumbnail = data.thumbnail.contents[0];
+    const thumbnail = data.thumbnail.length ? data.thumbnail[0] : data.thumbnail.contents[0];
 
     return <Modal
         key={'modal' + data.id}

@@ -40,7 +40,5 @@ class CustomEvent extends Event {
 
 global.CustomEvent = CustomEvent;
 
-LogBox.ignoreLogs(['Require cycle:']);
-
 AppRegistry.registerComponent(appName, () => App);
 TrackPlayer.registerPlaybackService(() => require('./ts/AudioPlayer'));
