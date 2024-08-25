@@ -161,6 +161,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
+    const thumbnail: any = youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.thumbnail?.[0];
+
     return (
         <GestureHandlerRootView style={{ }}>
             <GestureDetector gesture={gesture}>
@@ -177,7 +179,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                         <Pressable onPress={() => { if (state.value != 1) { jumpPlayer(1) } }}>
                             <Animated.View style={minControlStyle}>
                                 <View style={{ width: 5 }}></View>
-                                <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: getThumbnail(youtube.player.queue[youtube.player.currentIndex]) }}></Image>
+                                <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: thumbnail?.url }}></Image>
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0, justifyContent: "center" }}>
                                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
                                     <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
@@ -225,7 +227,9 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 </Pressable>
                             </View>
                             <View style={{ flexGrow: 2 }}></View>
-                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60 }}><Image style={{ width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 15 }} source={{ uri: getThumbnail(youtube.player.queue[youtube.player.currentIndex]) }} /></View>
+                            <View style={{ paddingRight: 30, paddingLeft: 30, width: "100%", height: width - 60, justifyContent: 'center' }}>
+                                <Image style={{ width: "100%", height: thumbnail ? thumbnail?.height / thumbnail?.width * (width - 60) : width - 60, borderRadius: 15, backgroundColor: 'rgba(255, 255, 255, 0.1)' }} source={{ uri: thumbnail?.url }} />
+                            </View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
                                 <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
@@ -457,10 +461,6 @@ const interpolate = (start: number, end: number, pos: number): number => {
     "worklet";
     return Math.round(Math.min(Math.max((1 - pos) * start + pos * end, Math.min(start, end)), Math.max(start, end)));
 };
-
-function getThumbnail (obj: any) {
-    return obj?.track?.basic_info?.thumbnail[0]?.url;
-}
 
 function getRGB (color: number): { r: number; g: number; b: number } {
     return { r: (color & 0xff0000) >> 16, g: (color & 0x00ff00) >> 8, b: color & 0x0000ff };

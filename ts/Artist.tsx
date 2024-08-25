@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedRef, useAnimatedStyle, useScrollViewOffset } from 'react-native-reanimated';
 import TrackModal from './TrackModal';
+import IconRender from './IconRender';
 
 const { width } = Dimensions.get('screen');
 
@@ -15,6 +16,7 @@ function Component ({ navigation, route }: any) {
 
     useEffect(() => {
         youtube.getArtist(route.params.id).then(artist => {
+            console.log(JSON.stringify(artist));
             setData(artist);
         });
     }, []);
@@ -55,7 +57,7 @@ function Component ({ navigation, route }: any) {
         paddingTop: safeAreaInsets.top - 5,
         flexGrow: 1,
         height: 100,
-        backgroundColor: scrollOffset.value > width - 100 ? '#000000' : 'transparent',
+        backgroundColor: scrollOffset.value > width - 100 ? '#030303' : 'transparent',
         borderBottomWidth: 1,
         borderColor: `rgba(42,42,42,${(scrollOffset.value - 250) / 20})`
     }));
@@ -82,7 +84,7 @@ function Component ({ navigation, route }: any) {
                 {data.header.foreground_thumbnail ? <Animated.Image style={profileImageStyle} source={{ uri: data.header.foreground_thumbnail[0].url }} /> : <></>}
                 <Animated.Text style={[{ fontWeight: 700 }, textStyle]}>{data.header.title.text}</Animated.Text>
             </View>
-            <View style={{ backgroundColor: '#000000' }}>
+            <View style={{ backgroundColor: '#030303' }}>
                 {data.sections.map((section: any) => <>
                     <Text style={{ color: 'white', fontWeight: 600, fontSize: 22, padding: 15 }}>{section.header?.title?.text ?? section.title.text}</Text>
                     {section.type == 'MusicShelf' ? <View style={{ flexDirection: 'column' }}>
@@ -175,7 +177,10 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
                 <Image width={55} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 55} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />
                 <View style={{ marginLeft: 15, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
-                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                    <View style={{ flexDirection: 'row' }}>
+                        {data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
+                        <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
+                    </View>
                 </View>
                 <Pressable onPress={() => setVisible(true)} onLongPress={() => setVisible(true)} style={{ height: "100%", paddingLeft: 5, paddingRight: 5 }}>
                     <View style={{ flexGrow: 1, justifyContent: "center" }}>
@@ -196,7 +201,10 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
             <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: data.item_type == 'artist' ? "center" : "flex-start", width: data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150 }}>
                 <Image width={data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150} height={data.item_type ==  'video' ? 150 : data.thumbnail[0].height / data.thumbnail[0].width * (data.subtitle.runs[0].text == 'Album' ? 200 : 150)} style={{ borderRadius: data.item_type == 'artist' ? 1000 : 8, marginBottom: 5 }} source={{ uri: data.thumbnail[0].url }} />
                 <Text numberOfLines={2} style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{data.title.text}</Text>
-                <Text numberOfLines={2} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 14, fontWeight: 500 }}>{data.subtitle.text}</Text>
+                <View style={{ flexDirection: 'row' }}>
+                    {data.badges?.length ? data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>) : <></>}
+                    <Text numberOfLines={2} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 14, fontWeight: 500 }}>{data.subtitle.text}</Text>
+                </View>
             </View>
         </Pressable>
     </>
