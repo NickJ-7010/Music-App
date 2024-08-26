@@ -16,7 +16,6 @@ function Component ({ navigation, route }: any) {
 
     useEffect(() => {
         youtube.getArtist(route.params.id).then(artist => {
-            console.log(JSON.stringify(artist));
             setData(artist);
         });
     }, []);
@@ -171,14 +170,14 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
     const [isVisible, setVisible] = useState(false);
 
     return section.type == 'MusicShelf' ? <>
-        <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+        <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
             <View style={{ padding: 7, paddingLeft: 15, height: 69, flexDirection: "row", alignItems: "center" }}>
                 <Image width={55} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 55} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />
                 <View style={{ marginLeft: 15, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                     <View style={{ flexDirection: 'row' }}>
-                        {data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
+                        {data.badges?.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
                         <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
                     </View>
                 </View>
@@ -196,7 +195,7 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
             </View>
         </Pressable>
     </> : <>
-        <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+        <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
             <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: data.item_type == 'artist' ? "center" : "flex-start", width: data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150 }}>
                 <Image width={data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150} height={data.item_type ==  'video' ? 150 : data.thumbnail[0].height / data.thumbnail[0].width * (data.subtitle.runs[0].text == 'Album' ? 200 : 150)} style={{ borderRadius: data.item_type == 'artist' ? 1000 : 8, marginBottom: 5 }} source={{ uri: data.thumbnail[0].url }} />

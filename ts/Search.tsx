@@ -167,7 +167,7 @@ function SearchResults ({ results, applyFilter, navigation }: SearchResultsProps
                             )}</View>
                         </> : content })(
                         <>
-                            <TrackModal data={shelf} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+                            <TrackModal data={shelf} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
                             <Pressable onPress={() => youtube.handlePress(shelf, navigation)} onLongPress={() => { shelf.end_icon_type ? youtube.handlePress(shelf, navigation) : setVisible(true); }} style={{ padding: 15, paddingRight: 10 }}>
                                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                                     <Image width={50} height={shelf.thumbnail.contents[0].height / shelf.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: shelf.thumbnail.contents[0].url }} />
@@ -224,7 +224,7 @@ function ItemRender ({ data, navigation }: { data: any, navigation: any }) {
 
     return (
         <>
-            <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} ></TrackModal>
+            <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
             <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
                 <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                     <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 3 }} source={{ uri: thumbnail.url }} />

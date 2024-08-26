@@ -5,7 +5,7 @@ import IconRender from './IconRender';
 import youtube from './YouTube'
 import Svg, { Path } from 'react-native-svg';
 
-function Component ({ data, providedThumbnails, isVisible, setVisible, navigation }: { data: any, providedThumbnails?: any, isVisible: boolean, setVisible: React.Dispatch<React.SetStateAction<boolean>>, navigation: any }) {
+function Component ({ data, providedThumbnails, itemList, isVisible, setVisible, navigation }: { data: any, providedThumbnails?: any, itemList?: any, isVisible: boolean, setVisible: React.Dispatch<React.SetStateAction<boolean>>, navigation: any }) {
     const thumbnail = providedThumbnails ? providedThumbnails[0] : data.thumbnail.length ? data.thumbnail[0] : data.thumbnail.contents[0];
 
     return <Modal
@@ -35,7 +35,7 @@ function Component ({ data, providedThumbnails, isVisible, setVisible, navigatio
                     </View>
                 </Pressable>
             </View>
-            {data.menu.items.filter((item: any) => item.text != undefined).map((item: any, index: any) =>
+            {(itemList ?? data.menu.items).filter((item: any) => item.text != undefined).map((item: any, index: any) =>
                 <Pressable key={index} onPress={() => { setVisible(false); setTimeout(() => youtube.handleAction(item, navigation), 200); }} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
                     <IconRender icon={item.icon_type} width={24}></IconRender>
                     <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
