@@ -161,7 +161,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
-    const thumbnail: any = youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.thumbnail?.[0];
+    const thumbnail: any = youtube.player.queue[youtube.player.currentIndex]?.track?.thumbnail?.[0];
 
     return (
         <GestureHandlerRootView style={{ }}>
@@ -181,8 +181,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                 <View style={{ width: 5 }}></View>
                                 <Image style={{ height: "auto", aspectRatio: 1, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.1)" }} source={{ uri: thumbnail?.url }}></Image>
                                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0, justifyContent: "center" }}>
-                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
-                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.title ?? 'Title'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.author ?? 'Artist'}</Text>
                                 </View>
                                 <Pressable style={{ margin: 5, marginRight: 0, padding: playerState.state == State.Playing ? 0 : 6 }} onPress={() => { if (playerState.state == State.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }}>
                                     <Svg
@@ -232,8 +232,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                             </View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
-                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.title ?? 'Title'}</Text>
-                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.author ?? 'Artist'}</Text>
+                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.title ?? 'Title'}</Text>
+                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.author ?? 'Artist'}</Text>
                             </View>
                             <View style={{ flexGrow: 3 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
@@ -328,7 +328,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 }
 
 function ProgressView () {
-    const duration = youtube.player.queue[youtube.player.currentIndex]?.track?.basic_info?.duration ?? 0;
+    const duration = youtube.player.queue[youtube.player.currentIndex]?.track?.duration ?? 0;
     const { position, buffered } = useProgress();
     const isDragging = useSharedValue<boolean>(false);
     const offset = useSharedValue<number>(0);
@@ -399,13 +399,16 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
     const [stateNum, setState] = useState(0);
 
     const renderItem = function ({ item, drag, isActive, getIndex }: RenderItemParams<MusicTrackInfo>) {
-        return <View style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? '#' + palette[3].r.toString(16).padStart(2, '0') + palette[3].g.toString(16).padStart(2, '0') + palette[3].b.toString(16).padStart(2, '0') : 'transparent' }}>
+        return <Pressable onPress={() => {
+            youtube.player.currentIndex = getIndex() ?? 0;
+            youtube.playerControls.play();
+        }} style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? '#' + palette[3].r.toString(16).padStart(2, '0') + palette[3].g.toString(16).padStart(2, '0') + palette[3].b.toString(16).padStart(2, '0') : 'transparent' }}>
             { /* @ts-ignore */ }
-            <Image width={50} height={item.track.basic_info.thumbnail[0].height / item.track.basic_info.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: item.track.basic_info.thumbnail[0].url }} />
+            <Image width={50} height={item.track.thumbnail[0].height / item.track.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: item.track.thumbnail[0].url }} />
             <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
-                <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.track.basic_info.title}</Text>
+                <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.track.title}</Text>
                 { /* @ts-ignore */ }
-                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.track.basic_info.author + ' • ' + Math.floor(item.track.basic_info.duration / 60) + ':' + (item.track.basic_info.duration % 60).toString().padStart(2, '0')}</Text>
+                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.track.author + ' • ' + Math.floor(item.track.duration / 60) + ':' + (item.track.duration % 60).toString().padStart(2, '0')}</Text>
             </View>
             <Pressable onPress={drag} onLongPress={drag} style={{ height: "100%", paddingLeft: 5 }}>
                 <View style={{ flexGrow: 1, justifyContent: "center" }}>
@@ -418,7 +421,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
                     </Svg>
                 </View>
             </Pressable>
-        </View>
+        </Pressable>
     }
 
     return (
@@ -437,7 +440,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
                     }
                     setState(Date.now());
                 }}
-                keyExtractor={(item, index) => 'key-' + item.track.basic_info.id + index}
+                keyExtractor={(item, index) => 'key-' + item.track.id + index}
                 renderItem={renderItem}
             />
         </ScrollView>

@@ -51,16 +51,29 @@ class YoutubeManager {
                 }
             },
             play: async () => {
-
+                if (!this.player.queue[this.player.currentIndex].track.id) return;
+                const info = await this.getInfo(this.player.queue[this.player.currentIndex].track.id ?? '');
+                
+                await TrackPlayer.setQueue([{
+                    url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(this.api.session.player),
+                    title: info.track.basic_info.title,
+                    artist: info.track.basic_info.author, //@ts-ignore
+                    artwork: info.track.basic_info.thumbnail[0].url,
+                    duration: info.track.basic_info.duration
+                }]);
+                
+                await TrackPlayer.play();
             },
             next: async () => {
-                await TrackPlayer.skipToNext();
+                this.player.currentIndex++;
+                await this.playerControls.play();
             },
             previous: async () => {
                 if ((await TrackPlayer.getProgress()).position >= 5) {
                     await TrackPlayer.seekTo(0);
                 } else {
-                    await TrackPlayer.skipToPrevious();
+                    this.player.currentIndex--;
+                    await this.playerControls.play();
                 }
             }
         };
@@ -107,7 +120,7 @@ class YoutubeManager {
         return await this.api.music.search(query);
     }
 
-    async getInfo (video_id: string): Promise<MusicTrackInfo> {
+    async getInfo (video_id: string): Promise<{ colors: any, track: YTMusic.TrackInfo }> {
         const track = await this.api.music.getInfo(video_id);
 
         //@ts-ignore
@@ -141,10 +154,10 @@ class YoutubeManager {
 
     async registerMetadata () {
         await TrackPlayer.updateMetadataForTrack(0, {
-            title: this.player.queue[this.player.currentIndex].track.basic_info.title,
-            artist: this.player.queue[this.player.currentIndex].track.basic_info.author, //@ts-ignore
-            artwork: this.player.queue[this.player.currentIndex].track.basic_info.thumbnail[0].url,
-            duration: this.player.queue[this.player.currentIndex].track.basic_info.duration
+            title: this.player.queue[this.player.currentIndex].track.title,
+            artist: this.player.queue[this.player.currentIndex].track.author, //@ts-ignore
+            artwork: this.player.queue[this.player.currentIndex].track.thumbnail[0].url,
+            duration: this.player.queue[this.player.currentIndex].track.duration
         });
     }
 
@@ -153,10 +166,17 @@ class YoutubeManager {
     
         if (endpoint.metadata.api_url == '/player') {
             const info = await this.getInfo(endpoint.payload.videoId);
-    
-            //console.log(JSON.stringify(info));
-    
-            this.player.queue = [info];
+        
+            this.player.queue = [{
+                colors: info.colors,
+                track: {
+                    title: info.track.basic_info.title,
+                    author: info.track.basic_info.author,
+                    thumbnail: info.track.basic_info.thumbnail,
+                    duration: info.track.basic_info.duration,
+                    id: info.track.basic_info.id
+                }
+            }];
             this.player.jumpPlayer(1);
             this.player.setState(Date.now());
     
@@ -186,7 +206,7 @@ class YoutubeManager {
     }
 }
 
-function handleBrowse (endpoint: any, navigation: any) {
+function handleBrowse (endpoint: any, navigation: any): void {
     switch (endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType) {
         case 'MUSIC_PAGE_TYPE_ARTIST':
         case 'MUSIC_PAGE_TYPE_USER_CHANNEL':
@@ -206,7 +226,17 @@ function handleBrowse (endpoint: any, navigation: any) {
 
 export interface MusicTrackInfo {
     colors: any;
-    track: YTMusic.TrackInfo
+    track: {
+        title?: string;
+        author?: string;
+        thumbnail?: {
+            url: string;
+            height: number;
+            width: number;
+        }[];
+        duration?: number;
+        id?: string;
+    }
 }
 
 export default new YoutubeManager();

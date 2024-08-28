@@ -8,6 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import TrackModal from './TrackModal';
 import IconRender from './IconRender';
 import TrackPlayer from 'react-native-track-player';
+import ImageColors from "react-native-image-colors";
 
 const { width } = Dimensions.get('screen');
 
@@ -115,39 +116,74 @@ function Component ({ navigation, route }: any) {
                             <Path d="M4,20h14v1H3V6h1V20z M18,10h-4V6h-1v4H9v1h4v4h1v-4h4V10z M21,3v15H6V3H21z M20,4H7v13h13V4z" />
                         </Svg>
                     </Pressable>
-                    <Pressable onPress={() => {
+                    <Pressable onPress={async () => {
                         const infoList: any[] = [];
+
+                        let colors: any;
+
+                        if (data.url) {
+                            colors = await ImageColors.getColors(data.header.thumbnail.contents[0].url, { });
+                        }
 
                         var i = 0;
                         var comp = 0;
-                        data.contents.forEach((item: any) => {
+                        data.contents.forEach(async (item: any) => {
                             if (item.item_type != 'unknown') {
                                 const store = i;
                                 infoList[i] = undefined;
-                                youtube.getInfo(item.id).then(async info => {
-                                    infoList[store] = info;
-                                    comp++;
-                                    if (comp == i) {
-                                        const info = infoList[0];
-                
-                                        youtube.player.queue = infoList;
-                                        youtube.player.jumpPlayer(1);
-                                        youtube.player.setState(Date.now());
-                                
-                                        await TrackPlayer.setQueue([{
-                                            url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
-                                            title: info.track.basic_info.title,
-                                            artist: info.track.basic_info.author, //@ts-ignore
-                                            artwork: info.track.basic_info.thumbnail[0].url,
-                                            duration: info.track.basic_info.duration
-                                        }]);
-                                        
-                                        await TrackPlayer.play();
-                                    }
-                                });
+                                if (colors) {
+                                    infoList[i] = {
+                                        colors,
+                                        track: {
+                                            title: item.title,
+                                            author: data.header.strapline_text_one.text,
+                                            thumbnail: data.header.thumbnail.contents,
+                                            duration: item.duration.seconds,
+                                            id: item.id
+                                        }
+                                    };
+                                } else {
+                                    ImageColors.getColors(item.thumbnail[0].url, { }).then(async color => {
+                                        infoList[store] = [{
+                                            colors: color,
+                                            track: {
+                                                title: item.title,
+                                                author: item.authors.map((author: any) => author.name).join(),
+                                                thumbnail: item.thumbnail.contents,
+                                                duration: item.duration.seconds,
+                                                id: item.id
+                                            }
+                                        }];
+                                        comp++;
+                                        if (comp == i) {
+                                            const info = await youtube.getInfo(item.id);
+                    
+                                            youtube.player.queue = infoList;
+                                            youtube.player.jumpPlayer(1);
+                                            youtube.player.setState(Date.now());
+                                    
+                                            await TrackPlayer.setQueue([{
+                                                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
+                                                title: info.track.basic_info.title,
+                                                artist: info.track.basic_info.author, //@ts-ignore
+                                                artwork: info.track.basic_info.thumbnail[0].url,
+                                                duration: info.track.basic_info.duration
+                                            }]);
+                                            
+                                            await TrackPlayer.play();
+                                        }
+                                    });
+                                }
                                 i++;
                             }
                         });
+
+                        if (colors) {
+                            console.log(infoList);
+                            youtube.player.queue = infoList;
+                            youtube.player.currentIndex = 0;
+                            youtube.playerControls.play();
+                        }
                     }} style={{ height: 60, width: 60, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
                         <Svg
                             width={22}
