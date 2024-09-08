@@ -16,6 +16,9 @@ class YoutubeManager {
         shuffled: boolean;
         loop: number;
         autoplay: boolean;
+        cache: {
+            playerColor: string;
+        }
         setState: (stateNumber: number) => void;
         jumpPlayer: (pos: number) => void;
     };
@@ -30,6 +33,9 @@ class YoutubeManager {
             shuffled: false,
             loop: 0,
             autoplay: false,
+            cache: {
+                playerColor: "008947"
+            },
             setState: () => { console.error('Called setState without initialized PlayerShelf'); },
             jumpPlayer: () => { console.error('Called setPlayerState without initialized PlayerShelf'); }
         }; 
@@ -42,34 +48,78 @@ class YoutubeManager {
             onTrackEnd: async () => {
                 const state = await TrackPlayer.getPlaybackState();
 
-                if (this.player.currentIndex == this.player.queue.length - 1 && !this.player.autoplay) {
-                    if (state.state == State.Playing) {
-                        await TrackPlayer.pause(); //@ts-ignore
-                        await TrackPlayer.seekTo(this.player.queue[this.player.currentIndex].track.basic_info.duration);
-                        this.registerMetadata();
+                console.log(state);
+
+                if (state.state == State.Playing) {
+                    if (this.player.currentIndex == this.player.queue.length - 1) {
+                        if (this.player.loop == 2) { //@ts-ignore
+                            await TrackPlayer.seekTo(0);
+                        } else if (this.player.loop == 1) {
+                            await TrackPlayer.pause();
+                            this.player.currentIndex = 0;
+                            await this.playerControls.play();
+                        } else if (this.player.autoplay) {
+                            // TODO: Handle autoplay next video
+                        } else {
+                            await TrackPlayer.pause(); //@ts-ignore
+                            await TrackPlayer.seekTo(this.player.queue[this.player.currentIndex].track.duration);
+                            this.registerMetadata();
+                        }
+                    } else {
+                        await TrackPlayer.pause();
+                        this.player.currentIndex++;
+                        await this.playerControls.play();
                     }
                 }
             },
             play: async () => {
                 if (!this.player.queue[this.player.currentIndex].track.id) return;
+
+                //this.player.setState(Date.now());
+
                 const info = await this.getInfo(this.player.queue[this.player.currentIndex].track.id ?? '');
                 
+                const colorData = this.player.queue[this.player.currentIndex]?.colors;
+                const colors = [colorData?.background, colorData?.primary, colorData?.secondary, colorData?.detail];
+                let color = colors[0];
+                
+                if (color) {
+                    for (var i = 1; i < colors.length; i++) {
+                        const a = getRGB(parseInt(color.slice(1), 16));
+                        const b = getRGB(parseInt(colors[i].slice(1), 16));
+                        if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
+                            color = colors[i];
+                        }
+                    }
+                }
+
+                this.player.cache.playerColor = color.slice(1);
+
                 await TrackPlayer.setQueue([{
-                    url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(this.api.session.player),
+                    url: info.url,
                     title: info.track.basic_info.title,
                     artist: info.track.basic_info.author, //@ts-ignore
-                    artwork: info.track.basic_info.thumbnail[0].url,
+                    artwork: this.player.queue[this.player.currentIndex].track.thumbnail[0].url,
                     duration: info.track.basic_info.duration
                 }]);
                 
                 await TrackPlayer.play();
             },
             next: async () => {
-                this.player.currentIndex++;
+                if (this.player.currentIndex == this.player.queue.length - 1) {
+                    if (this.player.loop) {
+                        this.player.currentIndex = 0;
+                    } else {
+                        // TODO: Handle autoplay next video
+                        this.player.currentIndex = 0;
+                    }
+                } else {
+                    this.player.currentIndex++;
+                }
                 await this.playerControls.play();
             },
             previous: async () => {
-                if ((await TrackPlayer.getProgress()).position >= 5) {
+                if ((!this.player.currentIndex && !this.player.loop) || (await TrackPlayer.getProgress()).position >= 5) {
                     await TrackPlayer.seekTo(0);
                 } else {
                     this.player.currentIndex--;
@@ -120,11 +170,17 @@ class YoutubeManager {
         return await this.api.music.search(query);
     }
 
-    async getInfo (video_id: string): Promise<{ colors: any, track: YTMusic.TrackInfo }> {
+    async getInfo (video_id: string): Promise<{ url: string, colors: any, track: YTMusic.TrackInfo }> {
         const track = await this.api.music.getInfo(video_id);
 
+        const response = await this.api.actions.execute(Endpoints.PlayerEndpoint.PATH, Endpoints.PlayerEndpoint.build({
+            video_id,
+            sts: this.api.session.player?.sts,
+            client: 'iOS'
+        }));
+
         //@ts-ignore
-        return { colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
+        return { url: response.data?.streamingData?.hlsManifestUrl, colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
     }
 
     async getArtist (artist_id: string): Promise<YTMusic.Artist> {
@@ -167,6 +223,21 @@ class YoutubeManager {
         if (endpoint.metadata.api_url == '/player') {
             const info = await this.getInfo(endpoint.payload.videoId);
         
+            const colors = [info.colors?.background, info.colors?.primary, info.colors?.secondary, info.colors?.detail];
+            let color = colors[0];
+            
+            if (color) {
+                for (var i = 1; i < colors.length; i++) {
+                    const a = getRGB(parseInt(color.slice(1), 16));
+                    const b = getRGB(parseInt(colors[i].slice(1), 16));
+                    if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
+                        color = colors[i];
+                    }
+                }
+            }
+
+            this.player.cache.playerColor = info.colors.primary.slice(1);
+
             this.player.queue = [{
                 colors: info.colors,
                 track: {
@@ -181,7 +252,7 @@ class YoutubeManager {
             this.player.setState(Date.now());
     
             await TrackPlayer.setQueue([{
-                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(this.api.session.player),
+                url: info.url,
                 title: info.track.basic_info.title,
                 artist: info.track.basic_info.author, //@ts-ignore
                 artwork: info.track.basic_info.thumbnail[0].url,
@@ -222,6 +293,10 @@ function handleBrowse (endpoint: any, navigation: any): void {
             console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
             break;
     }
+}
+
+function getRGB (color: number): { r: number; g: number; b: number } {
+    return { r: (color & 0xff0000) >> 16, g: (color & 0x00ff00) >> 8, b: color & 0x0000ff };
 }
 
 export interface MusicTrackInfo {

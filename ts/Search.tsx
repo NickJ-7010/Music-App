@@ -155,7 +155,7 @@ function SearchResults ({ results, applyFilter, navigation }: SearchResultsProps
                 </View> :
                 <View key={shelf.title.text}>
                     <View style={{ padding: 15 }}>
-                        <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.header.title.text}</Text>
+                        <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.header?.title?.text}</Text>
                     </View>
                     <View style={{ marginLeft: 15, marginRight: 15, backgroundColor: "rgba(255, 255, 255, 0.1)", borderRadius: 5 }}>
                         {((content: any) => { return shelf.contents ? <>
@@ -225,13 +225,13 @@ function ItemRender ({ data, navigation }: { data: any, navigation: any }) {
     return (
         <>
             <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
-            <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
+            <Pressable onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
                 <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                     <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 3 }} source={{ uri: thumbnail.url }} />
                     <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                         <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                         <View style={{ flexDirection: 'row' }}>
-                            {data.badges?.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
+                            {data.badges?.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
                             <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
                         </View>
                     </View>

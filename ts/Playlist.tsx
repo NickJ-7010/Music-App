@@ -90,7 +90,7 @@ function Component ({ navigation, route }: any) {
                         <Text style={{ color: '#ffffff', fontSize: 12 }}>{data.header.strapline_text_one.text}</Text>
                     </View>
                     <View style={{ flexDirection: 'row' }}>
-                        {data.header.subtitle_badge?.length ? data.header.subtitle_badge.map((badge: any) => <View style={{ paddingTop: 1, marginRight: 3 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.6)"} width={12}></IconRender></View>) : <></>}
+                        {data.header.subtitle_badge?.length ? data.header.subtitle_badge.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 1, marginRight: 3 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.6)"} width={12}></IconRender></View>) : <></>}
                         <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12 }}>{data.header.subtitle.text}</Text>
                     </View>
                 </Pressable>
@@ -179,10 +179,11 @@ function Component ({ navigation, route }: any) {
                         });
 
                         if (colors) {
-                            console.log(infoList);
                             youtube.player.queue = infoList;
                             youtube.player.currentIndex = 0;
                             youtube.playerControls.play();
+                            youtube.player.jumpPlayer(1);
+                            youtube.player.setState(Date.now());
                         }
                     }} style={{ height: 60, width: 60, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
                         <Svg
@@ -214,14 +215,14 @@ function Component ({ navigation, route }: any) {
                 </View>
             </Animated.View>
             <View>
-                {data.contents.map((item: any) => <View style={{ marginTop: 10 }}>
+                {data.contents.map((item: any) => <View key={item.id} style={{ marginTop: 10 }}>
                     <ItemRender data={item} thumbnail={data.header.thumbnail.contents} navigation={navigation}></ItemRender>
                 </View>)}
             </View>
             <Text style={{ color: 'rgba(255, 255, 255, 0.75)', textAlign: 'center', padding: 15 }}>{data.header.second_subtitle.text}</Text>
             {data.sections ? data.sections.map((section: any) => <>
                 <Text style={{ color: 'white', fontWeight: 600, fontSize: 22, padding: 15 }}>{section.header.title.text}</Text>
-                {section.contents.map((item: any) => <AlbumRender data={item} navigation={navigation}></AlbumRender>)}
+                {section.contents.map((item: any) => <AlbumRender key={item.id} data={item} navigation={navigation}></AlbumRender>)}
             </>) : <></>}
             <View style={{ height: 100 }}></View>
         </>
@@ -242,6 +243,12 @@ function Component ({ navigation, route }: any) {
                     <Animated.View style={headerShadowStyle}>
                         <Animated.View style={headerStyle}>
                             <Image blurRadius={25} style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.5 }} source={{ uri: data?.header?.thumbnail?.contents?.[0]?.url ?? youtube.backgroundUrl }} />
+                            <LinearGradient
+                                start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
+                                locations={[0.25,0.75,1]}
+                                colors={['rgba(3, 3, 3, 0)', 'rgba(3, 3, 3, 0.5)', 'rgba(3, 3, 3, 1)']}
+                                style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 1 }}>
+                            </LinearGradient>
                         </Animated.View>
                     </Animated.View>
                 </View>
@@ -287,7 +294,7 @@ function ItemRender ({ data, thumbnail, navigation }: { data: any, thumbnail: an
                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                     <View style={{ flexDirection: 'row' }}>
-                        {data.badges?.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
+                        {data.badges?.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
                         <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{[data.fixed_columns[0].title.text, ...data.flex_columns.slice(1).map((column: any) => column.title.text).filter((str: any) => str != undefined)].join(' • ')}</Text>
                     </View>
                 </View>

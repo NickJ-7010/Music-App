@@ -4,7 +4,8 @@ import youtube from "./YouTube";
 module.exports = async function() {
     TrackPlayer.addEventListener(Event.RemotePlay, async () => {
         const progress = await TrackPlayer.getProgress();
-        if (progress.position == Math.round(progress.duration / 2)) {
+        console.log(progress);
+        if (Math.floor(progress.position) == youtube.player.queue[youtube.player.currentIndex].track.duration || Math.floor(progress.position) == Math.floor(progress.duration)) {
             await TrackPlayer.seekTo(0);
             setTimeout(async () => { // Hacky fix but idk a better fix right now
                 await TrackPlayer.play();

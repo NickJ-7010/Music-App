@@ -12,6 +12,7 @@ import * as MCU from "@material/material-color-utilities";
 import LinearGradient from "react-native-linear-gradient";
 import AnimateableText from "react-native-animateable-text";
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import ReactNativeHapticFeedback from "react-native-haptic-feedback";
 
 const { height, width } = Dimensions.get('screen');
 
@@ -40,21 +41,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     youtube.player.setState = setState;
     youtube.player.jumpPlayer = jumpPlayer;
 
-    const colorData = youtube.player.queue[youtube.player.currentIndex]?.colors;
-    const colors = [colorData?.background, colorData?.primary, colorData?.secondary, colorData?.detail];
-    let color = colors[0];
-    
-    if (color) {
-        for (var i = 1; i < colors.length; i++) {
-            const a = getRGB(parseInt(color.slice(1), 16));
-            const b = getRGB(parseInt(colors[i].slice(1), 16));
-            if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
-                color = colors[i];
-            }
-        }
-    }
-
-    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(color?.slice(1) ?? "008947", 16)));
+    const hct = MCU.DislikeAnalyzer.fixIfDisliked(MCU.Hct.fromInt(parseInt(youtube.player.cache.playerColor, 16)));
     hct.chroma = 65;
     const tones = MCU.TonalPalette.fromHct(hct);
     
@@ -278,7 +265,21 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                         <Path d="M80 20 40 50l40 30zM20 20h10v60H20z" />
                                     </Svg>
                                 </Pressable>
-                                <Pressable onPress={() => { if (playerState.state == State.Playing) { TrackPlayer.pause() } else { TrackPlayer.play() } }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
+                                <Pressable onPress={async () => {
+                                    if (playerState.state == State.Playing) {
+                                        TrackPlayer.pause()
+                                    } else {
+                                        const progress = await TrackPlayer.getProgress();
+                                        if (progress.position == youtube.player.queue[youtube.player.currentIndex].track.duration) {
+                                            await TrackPlayer.seekTo(0);
+                                            setTimeout(async () => { // Hacky fix but idk a better fix right now
+                                                await TrackPlayer.play();
+                                            }, 1000);
+                                        } else {
+                                            await TrackPlayer.play();
+                                        }
+                                    }
+                                }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
                                     <Svg
                                         width={playerState.state == State.Playing ? 50 : 35}
                                         height={playerState.state == State.Playing ? 50 : 35}
@@ -399,6 +400,15 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
     const [stateNum, setState] = useState(0);
 
     const renderItem = function ({ item, drag, isActive, getIndex }: RenderItemParams<MusicTrackInfo>) {
+        const dragWrap = function () {
+            ReactNativeHapticFeedback.trigger("impactMedium", {
+                enableVibrateFallback: true,
+                ignoreAndroidSystemSettings: false,
+            });
+
+            drag();
+        }
+
         return <Pressable onPress={() => {
             youtube.player.currentIndex = getIndex() ?? 0;
             youtube.playerControls.play();
@@ -410,7 +420,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
                 { /* @ts-ignore */ }
                 <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{item.track.author + ' • ' + Math.floor(item.track.duration / 60) + ':' + (item.track.duration % 60).toString().padStart(2, '0')}</Text>
             </View>
-            <Pressable onPress={drag} onLongPress={drag} style={{ height: "100%", paddingLeft: 5 }}>
+            <Pressable onPress={dragWrap} onLongPress={dragWrap} style={{ height: "100%", paddingLeft: 5 }}>
                 <View style={{ flexGrow: 1, justifyContent: "center" }}>
                     <Svg
                         width={32}
@@ -425,11 +435,16 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
     }
 
     return (
-        <ScrollView style={{ paddingTop: 10 }}>
+        <>
             <DraggableFlatList
-                scrollEnabled={false}
                 data={youtube.player.queue}
+                autoscrollSpeed={500}
+                onPlaceholderIndexChange={() => ReactNativeHapticFeedback.trigger("rigid", { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })}
                 onDragEnd={(data) => {
+                    ReactNativeHapticFeedback.trigger("impactMedium", {
+                        enableVibrateFallback: true,
+                        ignoreAndroidSystemSettings: false,
+                    });
                     youtube.player.queue = data.data;
                     if (data.from == youtube.player.currentIndex) {
                         youtube.player.currentIndex = data.to;
@@ -443,7 +458,11 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
                 keyExtractor={(item, index) => 'key-' + item.track.id + index}
                 renderItem={renderItem}
             />
-        </ScrollView>
+            <View style={{ height: 50, marginTop: 10, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.background ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.primary ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.secondary ?? "#008947" }}></View>
+            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.detail ?? "#008947" }}></View>
+        </>
     );
 }
 

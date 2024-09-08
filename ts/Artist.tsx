@@ -87,9 +87,9 @@ function Component ({ navigation, route }: any) {
                 {data.sections.map((section: any) => <>
                     <Text style={{ color: 'white', fontWeight: 600, fontSize: 22, padding: 15 }}>{section.header?.title?.text ?? section.title.text}</Text>
                     {section.type == 'MusicShelf' ? <View style={{ flexDirection: 'column' }}>
-                        {section.contents.map((item: any) => <ItemRender section={section} data={item} navigation={navigation}></ItemRender>)}
+                        {section.contents.map((item: any) => <ItemRender key={item.id} section={section} data={item} navigation={navigation}></ItemRender>)}
                     </View> : <ScrollView horizontal={true}>
-                        {section.contents.map((item: any) => <ItemRender section={section} data={item} navigation={navigation}></ItemRender>)}
+                        {section.contents.map((item: any) => <ItemRender key={item.id} section={section} data={item} navigation={navigation}></ItemRender>)}
                     </ScrollView>}
                     
                 </>)}
@@ -177,7 +177,7 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
                 <View style={{ marginLeft: 15, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                     <View style={{ flexDirection: 'row' }}>
-                        {data.badges?.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
+                        {data.badges?.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>)}
                         <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns.slice(1).map((column: any) => column.title.text).join(' • ')}</Text>
                     </View>
                 </View>
