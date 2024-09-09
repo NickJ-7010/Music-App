@@ -182,12 +182,12 @@ function SearchResults ({ results, applyFilter, navigation }: SearchResultsProps
                                     </Pressable>
                                 </View>
                                 <View style={{ flexDirection: "row", marginTop: 15, marginRight: 5 }}>
-                                    <Pressable onPress={() => { youtube.handleAction(shelf, navigation) }} style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                    <Pressable onPress={() => { youtube.handleAction(shelf.buttons[0], shelf, navigation) }} style={{ backgroundColor: "#ffffff", borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
                                         <IconRender icon={shelf.buttons[0].icon_type} width={24} fill="#000000"></IconRender>
                                         <Text style={{ fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[0].text}</Text>
                                     </Pressable>
                                     <View style={{ width: 15 }}></View>
-                                    <Pressable onPress={() => { youtube.handleAction(shelf, navigation) }} style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                                    <Pressable onPress={() => { youtube.handleAction(shelf.buttons[1], shelf, navigation) }} style={{ borderColor: "rgba(255, 255, 255, 0.25)", borderWidth: 1, borderRadius: 50, flexGrow: 1, width: 0, padding: 5, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
                                         <IconRender icon={shelf.buttons[1].icon_type} width={24}></IconRender>
                                         <Text style={{ color: "#ffffff", fontWeight: 600, marginLeft: 5 }}>{shelf.buttons[1].text}</Text>
                                     </Pressable>

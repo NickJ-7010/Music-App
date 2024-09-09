@@ -84,7 +84,7 @@ function Component ({ navigation, route }: any) {
         content = <>
             <Animated.Text numberOfLines={1} style={[{ fontWeight: 500 }, headerTextStyle]}>{data?.header?.title?.text}</Animated.Text>
             <Animated.View onLayout={event => { headerHeight.value = event.nativeEvent.layout.height; }} style={headingStyle}>
-                <Pressable style={{ alignItems: 'center' }} onPress={() => { console.log(data.header.strapline_text_one); youtube.handlePress(data.header.strapline_text_one, navigation) }}>
+                <Pressable style={{ alignItems: 'center' }} onPress={() => { youtube.handlePress(data.header.strapline_text_one, navigation) }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Image style={{ height: 14, aspectRatio: 1, borderRadius: 50, marginRight: 5 }} source={{ uri: data.header.strapline_thumbnail.contents[0].url }} />
                         <Text style={{ color: '#ffffff', fontSize: 12 }}>{data.header.strapline_text_one.text}</Text>

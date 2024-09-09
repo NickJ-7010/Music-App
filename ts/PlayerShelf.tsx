@@ -438,7 +438,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
         <>
             <DraggableFlatList
                 data={youtube.player.queue}
-                autoscrollSpeed={500}
+                autoscrollSpeed={200}
                 onPlaceholderIndexChange={() => ReactNativeHapticFeedback.trigger("rigid", { enableVibrateFallback: true, ignoreAndroidSystemSettings: false })}
                 onDragEnd={(data) => {
                     ReactNativeHapticFeedback.trigger("impactMedium", {
@@ -458,10 +458,6 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
                 keyExtractor={(item, index) => 'key-' + item.track.id + index}
                 renderItem={renderItem}
             />
-            <View style={{ height: 50, marginTop: 10, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.background ?? "#008947" }}></View>
-            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.primary ?? "#008947" }}></View>
-            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.secondary ?? "#008947" }}></View>
-            <View style={{ height: 50, backgroundColor: youtube.player.queue[youtube.player.currentIndex]?.colors?.detail ?? "#008947" }}></View>
         </>
     );
 }

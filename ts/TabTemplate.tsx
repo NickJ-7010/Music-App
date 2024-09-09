@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Search from './Search';
 import Artist from './Artist';
 import Playlist from './Playlist';
+import Credits from './SongCredits';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ function Component ({ children }: any) {
                 <Stack.Screen name="Search" component={Search} />
                 <Stack.Screen name="Artist" component={Artist} />
                 <Stack.Screen name="Playlist" component={Playlist} />
+                <Stack.Screen name="Credits" component={Credits} />
             </Stack.Navigator>
         </>
     );

@@ -36,7 +36,7 @@ function Component ({ data, providedThumbnails, itemList, isVisible, setVisible,
                 </Pressable>
             </View>
             {(itemList ?? data.menu.items).filter((item: any) => item.text != undefined).map((item: any, index: any) =>
-                <Pressable key={index} onPress={() => { setVisible(false); setTimeout(() => youtube.handleAction(item, navigation), 200); }} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
+                <Pressable key={index} onPress={() => { setVisible(false); setTimeout(() => youtube.handleAction(item, { ...data, thumbnail }, navigation), 200); }} style={{ padding: 15, paddingLeft: 24, flexDirection: "row", alignItems: "center" }}>
                     <IconRender icon={item.icon_type} width={24}></IconRender>
                     <Text style={{ color: "white", fontSize: 15, fontWeight: 500, marginLeft: 24 }}>{typeof item.text == "string" ? item.text : item.text?.text}</Text>
                 </Pressable>

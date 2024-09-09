@@ -195,6 +195,13 @@ class YoutubeManager {
         return await this.api.music.getPlaylist(playlist_id);
     }
 
+    async getCredits (endpoint: string) {
+        return await this.api.actions.execute('/browse', Endpoints.BrowseEndpoint.build({
+            browse_id: endpoint,
+            client: 'YTMUSIC'
+        }));
+    }
+
     async getHome (updateBackground: boolean): Promise<YTMusic.HomeFeed> {
         await this.awaitInit();
         const res = await this.api.actions.execute('/browse', Endpoints.BrowseEndpoint.build({
@@ -265,14 +272,36 @@ class YoutubeManager {
         }
     }
     
-    async handleAction (data: any, navigation: any) {
+    async handleAction (data: any, item: any, navigation: any) {
         if (data.endpoint.metadata.api_url) {
             if (data.endpoint.metadata.api_url == '/browse') {
                 handleBrowse(data.endpoint, navigation);
             }
-            console.log(JSON.stringify(data));
-        } else {
-            console.log(JSON.stringify(data));
+        } else if (data.type == 'MenuServiceItem') {
+            var track: MusicTrackInfo = {
+                colors: await ImageColors.getColors(item.thumbnail.url, { }),
+                track: {
+                    title: item.title,
+                    author: item.artists[0].name,
+                    thumbnail: item.thumbnail,
+                    duration: item.duration.seconds,
+                    id: item.id
+                }
+            };
+
+            if (!this.player.queue.length) {
+                this.player.queue.push(track);
+                this.playerControls.play();
+            } else if (data.endpoint.payload.queueInsertPosition == 'INSERT_AFTER_CURRENT_VIDEO') {
+                this.player.queue.splice(this.player.currentIndex + 1, 0, track);
+            } else {
+                console.log(track);
+                this.player.queue.push(track);
+            }
+
+            if (this.player.shuffled) {
+                this.player.unshuffledQueue.push(track);
+            }
         }
     }
 }
@@ -289,6 +318,8 @@ function handleBrowse (endpoint: any, navigation: any): void {
         case 'MUSIC_PAGE_TYPE_PLAYLIST':
             navigation.push('Playlist', { id: endpoint.payload.browseId, type: 1 });
             break;
+        case 'MUSIC_PAGE_TYPE_TRACK_CREDITS':
+            navigation.push('Credits', { id: endpoint.payload.browseId });
         default:
             console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
             break;
