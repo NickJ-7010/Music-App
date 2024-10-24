@@ -77,7 +77,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     const style = useAnimatedStyle(() => ({
         position: "absolute",
         width: "100%",
-        bottom: -76, // 76 is the current estimate of the TabBar height, no better way to get height :/
+        bottom: -79, // 79 is the current estimate of the TabBar height, no better way to get height :/
         backgroundColor: "#212121",
         height: Math.min((height - 144) / height * offset.value + 144, height)
     }));
@@ -93,7 +93,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 
     const tabBarStyle = useAnimatedStyle(() => ({
         opacity: offset.value / height < 1 ? 1 - offset.value / height : 1,
-        transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 76  : 76 }]
+        transform: [{ translateY: offset.value / height < 1 ? offset.value / height * 79 : 79 }]
     }));
 
     const indicatorStyle = useAnimatedStyle(() => ({
@@ -148,7 +148,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         opacity: Math.max((offset.value - height) / (height - 110), 0)
     }));
 
-    const thumbnail: any = youtube.player.queue[youtube.player.currentIndex]?.track?.thumbnail?.[0];
+    const thumbnail: any = youtube.player.queue[youtube.player.currentIndex]?.track?.thumbnail ? youtube.getThumbnail(youtube.player.queue[youtube.player.currentIndex]?.track?.thumbnail, width - 60) : undefined;
 
     return (
         <GestureHandlerRootView style={{ }}>
@@ -329,8 +329,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
 }
 
 function ProgressView () {
-    const duration = youtube.player.queue[youtube.player.currentIndex]?.track?.duration ?? 0;
-    const { position, buffered } = useProgress();
+    const trackDuration = youtube.player.queue[youtube.player.currentIndex]?.track?.duration ?? 0;
+    const { position, buffered, duration } = useProgress();
     const isDragging = useSharedValue<boolean>(false);
     const offset = useSharedValue<number>(0);
 
@@ -342,20 +342,21 @@ function ProgressView () {
             offset.value = Math.min(Math.max(event.absoluteX - 30, 0), width - 60);
         })
         .onFinalize((event) => {
-            runOnJS(TrackPlayer.seekTo)(Math.min(Math.max(event.absoluteX - 30, 0), width - 60) / (width - 60) * duration);
+            runOnJS(TrackPlayer.seekTo)(Math.min(Math.max(event.absoluteX - 30, 0), width - 60) / (width - 60) * trackDuration);
         });
 
-    if (position >= duration) {
+    if (Math.floor(position) >= trackDuration || (duration != 0 && Math.floor(position) >= Math.floor(duration))) {
+        isDragging.value = false;
         youtube.playerControls.onTrackEnd();
     }
 
-    if (Math.floor(offset.value / (width - 60) * duration) == Math.floor(position)) {
+    if (Math.floor(offset.value / (width - 60) * trackDuration) == Math.floor(position)) {
         isDragging.value = false;
     }
 
     const progressBarStyle = useAnimatedStyle(() => ({
         position: "absolute",
-        width: isDragging.value  ? offset.value : Math.min(position / (duration ? duration : 1), 1) * (width - 60),
+        width: isDragging.value  ? offset.value : Math.min(position / (trackDuration ? trackDuration : 1), 1) * (width - 60),
         height: 2,
         backgroundColor: "#ffffff"
     }));
@@ -363,14 +364,14 @@ function ProgressView () {
     const progressButtonStyle = useAnimatedStyle(() => ({
         position: "relative",
         top: -5,
-        left: isDragging.value ? offset.value - 6 : Math.min(position / (duration ? duration : 1), 1) * (width - 60) - 6,
+        left: isDragging.value ? offset.value - 6 : Math.min(position / (trackDuration ? trackDuration : 1), 1) * (width - 60) - 6,
         width: 12,
         height: 12,
         backgroundColor: "white",
         borderRadius: 8
     }));
 
-    const animatedText = useDerivedValue(() => ((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(isDragging.value ? offset.value / (width - 60) * duration : position) ?? '0:00');
+    const animatedText = useDerivedValue(() => ((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(isDragging.value ? offset.value / (width - 60) * trackDuration : position) ?? '0:00');
     const animatedProps = useAnimatedProps(() => {
         return {
             text: animatedText.value,
@@ -382,13 +383,13 @@ function ProgressView () {
             <GestureDetector gesture={gesture}>
                 <View>
                     <View style={{ position: "absolute", width: width - 60, height: 2, backgroundColor: "rgba(255, 255, 255, 0.1)" }}></View>
-                    <View style={{ position: "absolute", width: Math.min(buffered / (duration ? duration : 1), 1) * (width - 60), height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)" }}></View>
+                    <View style={{ position: "absolute", width: Math.min(buffered / (trackDuration ? trackDuration : 1), 1) * (width - 60), height: 2, backgroundColor: "rgba(255, 255, 255, 0.3)" }}></View>
                     <Animated.View style={progressBarStyle}></Animated.View>
                     <Animated.View style={progressButtonStyle}></Animated.View>
                     <View style={{ flexDirection: "row" }}>
                         <AnimateableText animatedProps={animatedProps} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: "600", fontSize: 14 }} />
                         <View style={{ flexGrow: 1 }}></View>
-                        <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(duration) ?? '0:00'}</Text>
+                        <Text style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 14 }}>{((time: any) => { return time ? `${Math.floor(time / 60).toString()}:${Math.floor(time % 60).toString().padStart(2, '0')}` : null })(trackDuration) ?? '0:00'}</Text>
                     </View>
                 </View>
             </GestureDetector>
@@ -414,7 +415,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
             youtube.playerControls.play();
         }} style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? '#' + palette[3].r.toString(16).padStart(2, '0') + palette[3].g.toString(16).padStart(2, '0') + palette[3].b.toString(16).padStart(2, '0') : 'transparent' }}>
             { /* @ts-ignore */ }
-            <Image width={50} height={item.track.thumbnail[0].height / item.track.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: item.track.thumbnail[0].url }} />
+            <Image width={50} height={item.track.thumbnail[0].height / item.track.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: youtube.getThumbnail(item.track.thumbnail, 50).url }} />
             <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                 <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{item.track.title}</Text>
                 { /* @ts-ignore */ }

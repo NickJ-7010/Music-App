@@ -55,7 +55,7 @@ function Component ({ navigation, route }: any) {
     const headerStyle = useAnimatedStyle(() => ({
         paddingTop: safeAreaInsets.top - 5,
         flexGrow: 1,
-        height: 100,
+        height: safeAreaInsets.top + 50,
         backgroundColor: scrollOffset.value > width - 100 ? '#030303' : 'transparent',
         borderBottomWidth: 1,
         borderColor: `rgba(42,42,42,${(scrollOffset.value - 250) / 20})`
@@ -114,7 +114,7 @@ function Component ({ navigation, route }: any) {
     }
 
     return <View style={{ backgroundColor: "#030303", height: "100%" }}>
-        <Animated.Image style={imageStyle} source={{ uri: data && data.header.thumbnail.length != 0 ? data.header.thumbnail.length ? data.header.thumbnail[0].url : data.header.thumbnail.contents[0].url : youtube.backgroundUrl }} />
+        <Animated.Image style={imageStyle} source={{ uri: data && data.header.thumbnail.length != 0 ? data.header.thumbnail.length ? youtube.getThumbnail(data.header.thumbnail, width).url : youtube.getThumbnail(data.header.thumbnail.contents, width).url : youtube.backgroundUrl }} />
         {!data ? <LinearGradient
             start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
             locations={[0.25,0.75,1]}
@@ -131,7 +131,7 @@ function Component ({ navigation, route }: any) {
             </View>
             {content}
         </Animated.ScrollView>
-        <View style={{ position: 'absolute', paddingTop: safeAreaInsets.top + 10, flexDirection: 'row', maxWidth: 'auto' }}>
+        <View style={{ position: 'absolute', paddingTop: safeAreaInsets.top, flexDirection: 'row', maxWidth: 'auto' }}>
             <Pressable style={{ paddingLeft: 8 }} onPress={() => navigation.pop()}>
                 <Svg
                     width={32}
@@ -142,7 +142,7 @@ function Component ({ navigation, route }: any) {
                 </Svg>
             </Pressable>
         </View>
-        <View style={{ position: 'absolute', right: 0, paddingTop: safeAreaInsets.top + 15, flexDirection: 'row' }}>
+        <View style={{ position: 'absolute', right: 0, paddingTop: safeAreaInsets.top + 5, flexDirection: 'row' }}>
             <Pressable style={{ marginRight: 14 }} onPress={() => { console.log('Open Share Sheet') }}>
                 <Svg
                     width={24}
@@ -173,7 +173,7 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
         <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
             <View style={{ padding: 7, paddingLeft: 15, height: 69, flexDirection: "row", alignItems: "center" }}>
-                <Image width={55} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 55} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />
+                <Image width={55} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 55} style={{ borderRadius: 3 }} source={{ uri: youtube.getThumbnail(data.thumbnail.contents, 55).url }} />
                 <View style={{ marginLeft: 15, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                     <View style={{ flexDirection: 'row' }}>
@@ -197,8 +197,8 @@ function ItemRender ({ section, data, navigation }: { section: any, data: any, n
     </> : <>
         <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
-            <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: data.item_type == 'artist' ? "center" : "flex-start", width: data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150 }}>
-                <Image width={data.subtitle.runs[0].text == 'Album' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150} height={data.item_type ==  'video' ? 150 : data.thumbnail[0].height / data.thumbnail[0].width * (data.subtitle.runs[0].text == 'Album' ? 200 : 150)} style={{ borderRadius: data.item_type == 'artist' ? 1000 : 8, marginBottom: 5 }} source={{ uri: data.thumbnail[0].url }} />
+            <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: data.item_type == 'artist' ? "center" : "flex-start", width: data.subtitle.runs[0].text == 'Album' || data.subtitle.runs[0].text == 'EP' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150 }}>
+                <Image width={data.subtitle.runs[0].text == 'Album' || data.subtitle.runs[0].text == 'EP' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150} height={data.item_type ==  'video' ? 150 : data.thumbnail[0].height / data.thumbnail[0].width * (data.subtitle.runs[0].text == 'Album' || data.subtitle.runs[0].text == 'EP' ? 200 : 150)} style={{ borderRadius: data.item_type == 'artist' ? 1000 : 8, marginBottom: 5 }} source={{ uri: youtube.getThumbnail(data.thumbnail, data.subtitle.runs[0].text == 'Album' || data.subtitle.runs[0].text == 'EP' ? 200 : data.item_type == 'video' ? data.thumbnail[0].width / data.thumbnail[0].height * 150 : 150).url }} />
                 <Text numberOfLines={2} style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{data.title.text}</Text>
                 <View style={{ flexDirection: 'row' }}>
                     {data.badges?.length ? data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>) : <></>}

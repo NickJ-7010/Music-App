@@ -9,6 +9,7 @@ import TrackModal from './TrackModal';
 import IconRender from './IconRender';
 import TrackPlayer from 'react-native-track-player';
 import ImageColors from "react-native-image-colors";
+import YouTube from './YouTube';
 
 const { width } = Dimensions.get('screen');
 
@@ -47,15 +48,15 @@ function Component ({ navigation, route }: any) {
         width: "80%",
         paddingLeft: 60,
         color: '#ffffff',
-        fontSize: 20,
+        fontSize: 20,  
         transform: [{ translateY: scrollOffset.value }],
-        opacity: Math.max(Math.min((scrollOffset.value - headerHeight.value + 200) / 100, 1), 0),
+        opacity: Math.max(Math.min((scrollOffset.value - headerHeight.value + (safeAreaInsets.top * 2 + 100)) / (safeAreaInsets.top + 50), 1), 0),
         zIndex: 11
     }));
 
     const headerShadowStyle = useAnimatedStyle(() => ({
         shadowColor: '#000000',
-        shadowOpacity: Math.max(Math.min((scrollOffset.value - headerHeight.value + 200) / 100, 1), 0) / 2,
+        shadowOpacity: Math.max(Math.min((scrollOffset.value - headerHeight.value + safeAreaInsets.top * 2 + 100) / (safeAreaInsets.top + 50), 1), 0) / 2,
         shadowOffset: { width: 0, height: 1 },
         shadowRadius: 10
     }));
@@ -63,7 +64,7 @@ function Component ({ navigation, route }: any) {
     const headerStyle = useAnimatedStyle(() => ({
         paddingTop: safeAreaInsets.top - 5,
         flexGrow: 1,
-        height: 100,
+        height: safeAreaInsets.top + 50,
         overflow: 'hidden',
         backgroundColor: '#030303',
         transform: [{ translateY: scrollOffset.value < 0 ? scrollOffset.value : 0 }],
@@ -76,7 +77,7 @@ function Component ({ navigation, route }: any) {
         paddingLeft: 30,
         paddingRight: 30,
         zIndex: 10,
-        opacity: Math.max(Math.min(1 - (scrollOffset.value - headerHeight.value + 200) / 100, 1), 0),
+        opacity: Math.max(Math.min(1 - (scrollOffset.value - headerHeight.value + (safeAreaInsets.top * 2 + 100)) / (safeAreaInsets.top + 50), 1), 0),
         transform: [{ translateY: scrollOffset.value < 0 ? scrollOffset.value : 0 }],
     }));
 
@@ -86,7 +87,7 @@ function Component ({ navigation, route }: any) {
             <Animated.View onLayout={event => { headerHeight.value = event.nativeEvent.layout.height; }} style={headingStyle}>
                 <Pressable style={{ alignItems: 'center' }} onPress={() => { youtube.handlePress(data.header.strapline_text_one, navigation) }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Image style={{ height: 14, aspectRatio: 1, borderRadius: 50, marginRight: 5 }} source={{ uri: data.header.strapline_thumbnail.contents[0].url }} />
+                        <Image style={{ height: 14, aspectRatio: 1, borderRadius: 50, marginRight: 5 }} source={{ uri: youtube.getThumbnail(data.header.strapline_thumbnail.contents, 14).url }} />
                         <Text style={{ color: '#ffffff', fontSize: 12 }}>{data.header.strapline_text_one.text}</Text>
                     </View>
                     <View style={{ flexDirection: 'row' }}>
@@ -94,7 +95,7 @@ function Component ({ navigation, route }: any) {
                         <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12 }}>{data.header.subtitle.text}</Text>
                     </View>
                 </Pressable>
-                <Image style={{ width: width * 0.7, height: data.header.thumbnail.contents[0].height / data.header.thumbnail.contents[0].width * width * 0.7, marginTop: 15, marginBottom: 15, borderRadius: 5 }} source={{ uri: data.header.thumbnail.contents[0].url }} />
+                <Image style={{ width: width * 0.7, height: data.header.thumbnail.contents[0].height / data.header.thumbnail.contents[0].width * width * 0.7, marginTop: 15, marginBottom: 15, borderRadius: 5 }} source={{ uri: youtube.getThumbnail(data.header.thumbnail.contents, width * 0.7).url }} />
                 <Text style={{ color: '#ffffff', fontSize: 28, fontWeight: 700, textAlign: 'center' }}>{data.header.title.text}</Text>
                 {data.header.description ? <Pressable style={{ marginTop: 10, marginBottom: 10 }} onPress={() => setTrunk(!trunk)}><Text numberOfLines={trunk ? 2 : 0} style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: 14, textAlign: 'center' }}>{data.header.description.description.text}</Text></Pressable> : <></>}
                 <View style={{ flexDirection: 'row', width: "100%", marginTop: 15, alignItems: "center", justifyContent: "space-between" }}>
@@ -122,7 +123,7 @@ function Component ({ navigation, route }: any) {
                         let colors: any;
 
                         if (data.url) {
-                            colors = await ImageColors.getColors(data.header.thumbnail.contents[0].url, { });
+                            colors = await ImageColors.getColors(youtube.getThumbnail(data.header.thumbnail.contents, 50).url, { });
                         }
 
                         var i = 0;
@@ -139,11 +140,11 @@ function Component ({ navigation, route }: any) {
                                             author: data.header.strapline_text_one.text,
                                             thumbnail: data.header.thumbnail.contents,
                                             duration: item.duration.seconds,
-                                            id: item.id
+                                            id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
                                         }
                                     };
                                 } else {
-                                    ImageColors.getColors(item.thumbnail[0].url, { }).then(async color => {
+                                    ImageColors.getColors(youtube.getThumbnail(item.thumbnail, 50).url, { }).then(async color => {
                                         infoList[store] = [{
                                             colors: color,
                                             track: {
@@ -151,26 +152,17 @@ function Component ({ navigation, route }: any) {
                                                 author: item.authors.map((author: any) => author.name).join(),
                                                 thumbnail: item.thumbnail.contents,
                                                 duration: item.duration.seconds,
-                                                id: item.id
+                                                id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
                                             }
                                         }];
                                         comp++;
                                         if (comp == i) {
-                                            const info = await youtube.getInfo(item.id);
-                    
                                             youtube.player.queue = infoList;
+                                            youtube.player.currentIndex = 0;
+                                            youtube.player.shuffled = false;
                                             youtube.player.jumpPlayer(1);
                                             youtube.player.setState(Date.now());
-                                    
-                                            await TrackPlayer.setQueue([{
-                                                url: info.track.chooseFormat({ type: 'audio', quality: 'best', format: "mp4" }).decipher(youtube.api.session.player),
-                                                title: info.track.basic_info.title,
-                                                artist: info.track.basic_info.author, //@ts-ignore
-                                                artwork: info.track.basic_info.thumbnail[0].url,
-                                                duration: info.track.basic_info.duration
-                                            }]);
-                                            
-                                            await TrackPlayer.play();
+                                            youtube.playerControls.play();
                                         }
                                     });
                                 }
@@ -181,6 +173,7 @@ function Component ({ navigation, route }: any) {
                         if (colors) {
                             youtube.player.queue = infoList;
                             youtube.player.currentIndex = 0;
+                            youtube.player.shuffled = false;
                             youtube.playerControls.play();
                             youtube.player.jumpPlayer(1);
                             youtube.player.setState(Date.now());
@@ -231,7 +224,7 @@ function Component ({ navigation, route }: any) {
     return <>
         {data ? <TrackModal data={data.header} itemList={data.header.buttons.find((button: any) => button.type == 'Menu').items} navigation={navigation} isVisible={isVisible} setVisible={setVisible} /> : <></>}
         <View style={{ backgroundColor: "#030303", height: "100%" }}>
-            <Image blurRadius={25} style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.5 }} source={{ uri: data?.header?.thumbnail?.contents?.[0]?.url ?? youtube.backgroundUrl }} />
+            <Image blurRadius={25} style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.5 }} source={{ uri: data?.header?.thumbnail?.contents ? youtube.getThumbnail(data?.header?.thumbnail?.contents, width).url : youtube.backgroundUrl }} />
             <LinearGradient
                 start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
                 locations={[0.25,0.75,1]}
@@ -239,10 +232,10 @@ function Component ({ navigation, route }: any) {
                 style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 1 }}>
             </LinearGradient>
             <Animated.ScrollView ref={animatedRef} style={{ position: 'absolute', width: "100%", height: "100%" }} stickyHeaderIndices={[0]}>
-                <View style={{ height: 'auto', marginBottom: -100 }}>
+                <View style={{ height: 'auto', marginBottom: -safeAreaInsets.top - 50 }}>
                     <Animated.View style={headerShadowStyle}>
                         <Animated.View style={headerStyle}>
-                            <Image blurRadius={25} style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.5 }} source={{ uri: data?.header?.thumbnail?.contents?.[0]?.url ?? youtube.backgroundUrl }} />
+                            <Image blurRadius={25} style={{ position: "absolute", top: 0, width: "100%", aspectRatio: 1, opacity: 0.5 }} source={{ uri: data?.header?.thumbnail?.contents ? youtube.getThumbnail(data?.header?.thumbnail?.contents, width).url : youtube.backgroundUrl }} />
                             <LinearGradient
                                 start={{x: 0.0, y: 0}} end={{x: 0, y: 1.0}}
                                 locations={[0.25,0.75,1]}
@@ -286,11 +279,11 @@ function ItemRender ({ data, thumbnail, navigation }: { data: any, thumbnail: an
 
     return <>
         {data.item_type == 'unknown' ? <></> : <TrackModal data={data} providedThumbnails={thumbnail} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />}
-        <Pressable key={'pressable' + data.id} style={data.item_type == 'unknown' ? { opacity: 0.5 } : { }} onPress={() => { if (data.item_type != 'unknown') youtube.handlePress(data, navigation) }} onLongPress={() => setVisible(true)}>
+        <Pressable key={'pressable' + data.id} style={data.item_type == 'unknown' ? { opacity: 0.5 } : { }} onPress={() => { if (data.item_type != 'unknown') youtube.handlePress(data, navigation, data.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4)) }} onLongPress={() => setVisible(true)}>
             <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                 {data.index ?
                     <Text style={{ width: 30, color: 'white', fontWeight: 500, fontSize: 16, textAlign: 'center' }}>{data.index.text}</Text> : 
-                    <Image width={50} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: data.thumbnail.contents[0].url }} />}
+                    <Image width={50} height={data.thumbnail.contents[0].height / data.thumbnail.contents[0].width * 50} style={{ borderRadius: 3 }} source={{ uri: youtube.getThumbnail(data.thumbnail.contents, 50).url }} />}
                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.flex_columns[0].title.text}</Text>
                     <View style={{ flexDirection: 'row' }}>
@@ -321,7 +314,7 @@ function AlbumRender ({ data, navigation }: { data: any, navigation: any }) {
         <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
             <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: "flex-start", width: 150 }}>
-                <Image width={150} height={150} style={{ borderRadius: 5, marginBottom: 5 }} source={{ uri: data.thumbnail[0].url }} />
+                <Image width={150} height={150} style={{ borderRadius: 5, marginBottom: 5 }} source={{ uri: YouTube.getThumbnail(data.thumbnail, 150).url }} />
                 <Text numberOfLines={2} style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{data.title.text}</Text>
                 <View style={{ flexDirection: 'row' }}>
                     {data.badges?.length ? data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>) : <></>}

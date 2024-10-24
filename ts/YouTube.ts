@@ -3,6 +3,7 @@ import TrackPlayer, { Capability, State } from "react-native-track-player";
 import SearchSuggestionsSection from "../node_modules/youtubei.js/dist/src/parser/classes/SearchSuggestionsSection";
 import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints } from "youtubei.js";
 import ImageColors from "react-native-image-colors";
+import { PixelRatio } from 'react-native';
 
 class YoutubeManager {
     api!: Innertube;
@@ -51,10 +52,11 @@ class YoutubeManager {
                 console.log(state);
 
                 if (state.state == State.Playing) {
-                    if (this.player.currentIndex == this.player.queue.length - 1) {
-                        if (this.player.loop == 2) { //@ts-ignore
-                            await TrackPlayer.seekTo(0);
-                        } else if (this.player.loop == 1) {
+                    if (this.player.loop == 2) {
+                        await TrackPlayer.seekTo(0);
+                        await TrackPlayer.play();
+                    } else if (this.player.currentIndex == this.player.queue.length - 1) {
+                        if (this.player.loop == 1) {
                             await TrackPlayer.pause();
                             this.player.currentIndex = 0;
                             await this.playerControls.play();
@@ -73,7 +75,9 @@ class YoutubeManager {
                 }
             },
             play: async () => {
+                console.log('play called');
                 if (!this.player.queue[this.player.currentIndex].track.id) return;
+                console.log('function not returned');
 
                 //this.player.setState(Date.now());
 
@@ -99,11 +103,13 @@ class YoutubeManager {
                     url: info.url,
                     title: info.track.basic_info.title,
                     artist: info.track.basic_info.author, //@ts-ignore
-                    artwork: this.player.queue[this.player.currentIndex].track.thumbnail[0].url,
+                    artwork: this.getThumbnail(this.player.queue[this.player.currentIndex].track.thumbnail, -1).url,
                     duration: info.track.basic_info.duration
                 }]);
                 
+                await TrackPlayer.seekTo(0);
                 await TrackPlayer.play();
+                console.log(await TrackPlayer.getProgress());
             },
             next: async () => {
                 if (this.player.currentIndex == this.player.queue.length - 1) {
@@ -180,7 +186,7 @@ class YoutubeManager {
         }));
 
         //@ts-ignore
-        return { url: response.data?.streamingData?.hlsManifestUrl, colors: await ImageColors.getColors(track.basic_info.thumbnail[0].url, { }), track };
+        return { url: response.data?.streamingData?.hlsManifestUrl, colors: await ImageColors.getColors(this.getThumbnail(track.basic_info.thumbnail, 50).url, { }), track };
     }
 
     async getArtist (artist_id: string): Promise<YTMusic.Artist> {
@@ -219,16 +225,16 @@ class YoutubeManager {
         await TrackPlayer.updateMetadataForTrack(0, {
             title: this.player.queue[this.player.currentIndex].track.title,
             artist: this.player.queue[this.player.currentIndex].track.author, //@ts-ignore
-            artwork: this.player.queue[this.player.currentIndex].track.thumbnail[0].url,
+            artwork: this.getThumbnail(this.player.queue[this.player.currentIndex].track.thumbnail, -1).url,
             duration: this.player.queue[this.player.currentIndex].track.duration
         });
     }
 
-    async handlePress (data: any, navigation: any) {
+    async handlePress (data: any, navigation: any, id_overwrite?: any) {
         const endpoint = data.endpoint ?? data.overlay?.content?.endpoint ?? data.on_tap;
     
         if (endpoint.metadata.api_url == '/player') {
-            const info = await this.getInfo(endpoint.payload.videoId);
+            const info = await this.getInfo(id_overwrite ?? endpoint.payload.videoId);
         
             const colors = [info.colors?.background, info.colors?.primary, info.colors?.secondary, info.colors?.detail];
             let color = colors[0];
@@ -258,15 +264,7 @@ class YoutubeManager {
             this.player.jumpPlayer(1);
             this.player.setState(Date.now());
     
-            await TrackPlayer.setQueue([{
-                url: info.url,
-                title: info.track.basic_info.title,
-                artist: info.track.basic_info.author, //@ts-ignore
-                artwork: info.track.basic_info.thumbnail[0].url,
-                duration: info.track.basic_info.duration
-            }]);
-            
-            await TrackPlayer.play();
+            this.playerControls.play();
         } else {
             handleBrowse(endpoint, navigation);
         }
@@ -279,30 +277,57 @@ class YoutubeManager {
             }
         } else if (data.type == 'MenuServiceItem') {
             var track: MusicTrackInfo = {
-                colors: await ImageColors.getColors(item.thumbnail.url, { }),
+                colors: await ImageColors.getColors(this.getThumbnail(item.thumbnail, 50).url, { }),
                 track: {
                     title: item.title,
                     author: item.artists[0].name,
-                    thumbnail: item.thumbnail,
+                    thumbnail: [item.thumbnail],
                     duration: item.duration.seconds,
                     id: item.id
                 }
             };
 
             if (!this.player.queue.length) {
-                this.player.queue.push(track);
+                this.player.queue = [track];
                 this.playerControls.play();
             } else if (data.endpoint.payload.queueInsertPosition == 'INSERT_AFTER_CURRENT_VIDEO') {
                 this.player.queue.splice(this.player.currentIndex + 1, 0, track);
             } else {
-                console.log(track);
                 this.player.queue.push(track);
             }
+
+            this.player.setState(Date.now());
 
             if (this.player.shuffled) {
                 this.player.unshuffledQueue.push(track);
             }
         }
+    }
+
+    getThumbnail (thumbnails: any, width: number): any {
+        var initSort = thumbnails[0].width > thumbnails[thumbnails.length - 1].width;
+        var index = initSort ? 0 : thumbnails.length - 1;
+        var size = initSort ? thumbnails[0].width : thumbnails[thumbnails.length - 1].width;
+    
+        if (width == -1) {
+            for (var i = 0; i < thumbnails.length; i++) {
+                if (thumbnails[i].width > size) {
+                    size = thumbnails[i].width;
+                    index = i;
+                }
+            }
+        } else {
+            width = PixelRatio.getPixelSizeForLayoutSize(width);
+
+            for (var i = 0; i < thumbnails.length; i++) {
+                if (thumbnails[i].width >= width && thumbnails[i].width < size) {
+                    size = thumbnails[i].width;
+                    index = i;
+                }
+            }
+        }
+
+        return thumbnails[index];
     }
 }
 

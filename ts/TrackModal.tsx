@@ -6,7 +6,8 @@ import youtube from './YouTube'
 import Svg, { Path } from 'react-native-svg';
 
 function Component ({ data, providedThumbnails, itemList, isVisible, setVisible, navigation }: { data: any, providedThumbnails?: any, itemList?: any, isVisible: boolean, setVisible: React.Dispatch<React.SetStateAction<boolean>>, navigation: any }) {
-    const thumbnail = providedThumbnails ? providedThumbnails[0] : data.thumbnail.length ? data.thumbnail[0] : data.thumbnail.contents[0];
+    const thumbnail = providedThumbnails ? providedThumbnails : data.thumbnail.length ? data.thumbnail : data.thumbnail.contents;
+    const selectedThumbnail = youtube.getThumbnail(thumbnail, 50);
 
     return <Modal
         key={'modal' + data.id}
@@ -18,7 +19,7 @@ function Component ({ data, providedThumbnails, itemList, isVisible, setVisible,
         style={{ margin: 0 }}>
         <View style={{ position: "absolute", bottom: 0, width: "100%", backgroundColor: "#202022", borderRadius: 20, overflow: "hidden", paddingBottom: 32 }}>
             <View style={{ padding: 15, height: 80, width: "100%", backgroundColor: "rgba(255, 255, 255, 0.05)", borderBottomWidth: 1, borderBlockColor: "rgba(255, 255, 255, 0.1)", flexDirection: "row", alignItems: "center" }}>
-                <Image width={50} height={thumbnail.height / thumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 5 }} source={{ uri: thumbnail.url }} />
+                <Image width={50} height={selectedThumbnail.height / selectedThumbnail.width * 50} style={{ borderRadius: data.item_type == 'artist' ? 50 : 5 }} source={{ uri: selectedThumbnail.url }} />
                 <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
                     <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{data.title?.text ?? data.flex_columns[0]?.title?.text}</Text>
                     <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 16, fontWeight: 500 }}>{data.flex_columns?.slice(1)?.map((column: any) => column.title.text).join(' • ') ?? data.subtitle?.text}</Text>

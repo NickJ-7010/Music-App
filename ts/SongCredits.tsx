@@ -68,7 +68,7 @@ function Component ({ navigation, route }: any) {
         opacity: Math.max(Math.min(1 - (scrollOffset.value - headerHeight.value + 200) / 100, 1), 0)
     }));
 
-    const thumbnail = data ? data.metadata.musicMultiRowListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails.slice(-1)[0] : undefined;
+    const thumbnail = data ? youtube.getThumbnail(data.metadata.musicMultiRowListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails, width) : undefined;
 
     if (data) {
         content = <>
