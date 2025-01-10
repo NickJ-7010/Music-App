@@ -152,8 +152,12 @@ function SearchResults ({ results, applyFilter, navigation }: SearchResultsProps
                     {shelf.contents.map((item: any) =>
                         <ItemRender key={item.id} data={item} navigation={navigation} />
                     )}
-                </View> :
-                <View key={shelf.title.text}>
+                </View> : shelf.type == "ItemSection" ? <View style={{ flexDirection: 'row', marginLeft: 15, marginTop: 5 }}>
+                    <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: 500 }}>{shelf.contents[0].text} </Text>
+                    <Pressable style={{ flexDirection: 'row' }}>
+                        {shelf.contents[0].corrected_query.runs.map((run: any) => <Text style={{ color: "#00afff", fontSize: 16, fontWeight: 500, fontStyle: run.italics ? 'italic' : 'normal' }}>{run.text}</Text>)}
+                    </Pressable>
+                </View> : <View key={shelf.title.text}>
                     <View style={{ padding: 15 }}>
                         <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: 700 }}>{shelf.header?.title?.text}</Text>
                     </View>

@@ -1,6 +1,7 @@
 import React from "react";
 import { ColorValue } from "react-native";
 import { Path, Svg } from "react-native-svg";
+import Logger from "./Logger";
 
 function Component ({ icon, width, fill = "#ffffff" }: { icon: String, width: number, fill?: ColorValue }) {
     var path;
@@ -72,10 +73,14 @@ function Component ({ icon, width, fill = "#ffffff" }: { icon: String, width: nu
             path = 'M3,3v18h18V3H3z M16,9h-6v2h6v2h-6v2h6v2H8V7h8V9z';
             viewBox = '0 0 24 24';
             break;
+        case 'KEEP':
+            path = 'M16,11V3h1V2H7v1h1v8l-2,2v2h5v6l1,1l1-1v-6h5v-2L16,11z M17,14h-4h-1h-1H7v-0.59l1.71-1.71L9,11.41V11V3h6v8v0.41 l0.29,0.29L17,13.41V14z';
+            viewBox = '0 0 24 24';
+            break;
         default:
             path = 'M109.23-160 480-800l370.77 640H109.23ZM178-200h604L480-720 178-200Zm302-55.38q10.46 0 17.54-7.08 7.08-7.08 7.08-17.54 0-10.46-7.08-17.54-7.08-7.08-17.54-7.08-10.46 0-17.54 7.08-7.08 7.08-7.08 17.54 0 10.46 7.08 17.54 7.08 7.08 17.54 7.08Zm-20-89.24h40v-200h-40v200ZM480-460Z';
             viewBox = '0 -960 960 960';
-            console.log(icon);
+            Logger.log('Unknown Icon:' + icon);
             break;
     }
 

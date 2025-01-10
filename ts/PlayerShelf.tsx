@@ -11,7 +11,7 @@ import TrackPlayer, { usePlaybackState, useProgress, State } from "react-native-
 import * as MCU from "@material/material-color-utilities";
 import LinearGradient from "react-native-linear-gradient";
 import AnimateableText from "react-native-animateable-text";
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import DraggableFlatList, { RenderItemParams } from "react-native-draggable-flatlist";
 import ReactNativeHapticFeedback from "react-native-haptic-feedback";
 
 const { height, width } = Dimensions.get('screen');
@@ -219,8 +219,10 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                             </View>
                             <View style={{ flexGrow: 1 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
-                                <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.title ?? 'Title'}</Text>
-                                <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.author ?? 'Artist'}</Text>
+                                {/* <Pressable onPress={() => { youtube.handlePress({ endpoint: { payload: { browseId: youtube.player.queue[youtube.player.currentIndex]?.track?.channel_id, browseEndpointContextSupportedConfigs: { browseEndpointContextMusicConfig: { pageType: "MUSIC_PAGE_TYPE_ARTIST" } } } } }, navigation) }}> */}
+                                    <Text numberOfLines={1} style={{ color: "#ffffff", fontWeight: 700, fontSize: 26 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.title ?? 'Title'}</Text>
+                                    <Text numberOfLines={1} style={{ color: "rgba(255, 255, 255, 0.5)", fontWeight: 600, fontSize: 18 }}>{youtube.player.queue[youtube.player.currentIndex]?.track?.author ?? 'Artist'}</Text>
+                                {/* </Pressable> */}
                             </View>
                             <View style={{ flexGrow: 3 }}></View>
                             <View style={{ paddingRight: 30, paddingLeft: 30 }}>
@@ -334,6 +336,10 @@ function ProgressView () {
     const isDragging = useSharedValue<boolean>(false);
     const offset = useSharedValue<number>(0);
 
+    const stopDragging = () => {
+        setTimeout(() => isDragging.value = false, 2500);
+    }
+
     const gesture = Gesture.Pan()
         .onBegin(() => {
             isDragging.value = true;
@@ -342,6 +348,7 @@ function ProgressView () {
             offset.value = Math.min(Math.max(event.absoluteX - 30, 0), width - 60);
         })
         .onFinalize((event) => {
+            runOnJS(stopDragging)();
             runOnJS(TrackPlayer.seekTo)(Math.min(Math.max(event.absoluteX - 30, 0), width - 60) / (width - 60) * trackDuration);
         });
 

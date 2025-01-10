@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Pressable, View, Image, Text } from 'react-native';
+import { Dimensions, Pressable, View, Image, Text, ScrollView } from 'react-native';
 import youtube from './YouTube';
 import Animated, { useAnimatedRef, useAnimatedStyle, useScrollViewOffset, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -85,7 +85,7 @@ function Component ({ navigation, route }: any) {
         content = <>
             <Animated.Text numberOfLines={1} style={[{ fontWeight: 500 }, headerTextStyle]}>{data?.header?.title?.text}</Animated.Text>
             <Animated.View onLayout={event => { headerHeight.value = event.nativeEvent.layout.height; }} style={headingStyle}>
-                <Pressable style={{ alignItems: 'center' }} onPress={() => { youtube.handlePress(data.header.strapline_text_one, navigation) }}>
+                {data.header.strapline_thumbnail ? <Pressable style={{ alignItems: 'center' }} onPress={() => { youtube.handlePress(data.header.strapline_text_one, navigation) }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Image style={{ height: 14, aspectRatio: 1, borderRadius: 50, marginRight: 5 }} source={{ uri: youtube.getThumbnail(data.header.strapline_thumbnail.contents, 14).url }} />
                         <Text style={{ color: '#ffffff', fontSize: 12 }}>{data.header.strapline_text_one.text}</Text>
@@ -94,7 +94,15 @@ function Component ({ navigation, route }: any) {
                         {data.header.subtitle_badge?.length ? data.header.subtitle_badge.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 1, marginRight: 3 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.6)"} width={12}></IconRender></View>) : <></>}
                         <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12 }}>{data.header.subtitle.text}</Text>
                     </View>
-                </Pressable>
+                </Pressable> : <View style={{ alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ color: '#ffffff', fontSize: 12 }}>{data.header.strapline_text_one.text}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row' }}>
+                        {data.header.subtitle_badge?.length ? data.header.subtitle_badge.map((badge: any) => <View key={badge.icon_type} style={{ paddingTop: 1, marginRight: 3 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.6)"} width={12}></IconRender></View>) : <></>}
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12 }}>{data.header.subtitle.text}</Text>
+                    </View>
+                </View>}
                 <Image style={{ width: width * 0.7, height: data.header.thumbnail.contents[0].height / data.header.thumbnail.contents[0].width * width * 0.7, marginTop: 15, marginBottom: 15, borderRadius: 5 }} source={{ uri: youtube.getThumbnail(data.header.thumbnail.contents, width * 0.7).url }} />
                 <Text style={{ color: '#ffffff', fontSize: 28, fontWeight: 700, textAlign: 'center' }}>{data.header.title.text}</Text>
                 {data.header.description ? <Pressable style={{ marginTop: 10, marginBottom: 10 }} onPress={() => setTrunk(!trunk)}><Text numberOfLines={trunk ? 2 : 0} style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: 14, textAlign: 'center' }}>{data.header.description.description.text}</Text></Pressable> : <></>}
@@ -118,66 +126,7 @@ function Component ({ navigation, route }: any) {
                         </Svg>
                     </Pressable>
                     <Pressable onPress={async () => {
-                        const infoList: any[] = [];
-
-                        let colors: any;
-
-                        if (data.url) {
-                            colors = await ImageColors.getColors(youtube.getThumbnail(data.header.thumbnail.contents, 50).url, { });
-                        }
-
-                        var i = 0;
-                        var comp = 0;
-                        data.contents.forEach(async (item: any) => {
-                            if (item.item_type != 'unknown') {
-                                const store = i;
-                                infoList[i] = undefined;
-                                if (colors) {
-                                    infoList[i] = {
-                                        colors,
-                                        track: {
-                                            title: item.title,
-                                            author: data.header.strapline_text_one.text,
-                                            thumbnail: data.header.thumbnail.contents,
-                                            duration: item.duration.seconds,
-                                            id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
-                                        }
-                                    };
-                                } else {
-                                    ImageColors.getColors(youtube.getThumbnail(item.thumbnail, 50).url, { }).then(async color => {
-                                        infoList[store] = [{
-                                            colors: color,
-                                            track: {
-                                                title: item.title,
-                                                author: item.authors.map((author: any) => author.name).join(),
-                                                thumbnail: item.thumbnail.contents,
-                                                duration: item.duration.seconds,
-                                                id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
-                                            }
-                                        }];
-                                        comp++;
-                                        if (comp == i) {
-                                            youtube.player.queue = infoList;
-                                            youtube.player.currentIndex = 0;
-                                            youtube.player.shuffled = false;
-                                            youtube.player.jumpPlayer(1);
-                                            youtube.player.setState(Date.now());
-                                            youtube.playerControls.play();
-                                        }
-                                    });
-                                }
-                                i++;
-                            }
-                        });
-
-                        if (colors) {
-                            youtube.player.queue = infoList;
-                            youtube.player.currentIndex = 0;
-                            youtube.player.shuffled = false;
-                            youtube.playerControls.play();
-                            youtube.player.jumpPlayer(1);
-                            youtube.player.setState(Date.now());
-                        }
+                        enqueueList(data);
                     }} style={{ height: 60, width: 60, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
                         <Svg
                             width={22}
@@ -208,14 +157,16 @@ function Component ({ navigation, route }: any) {
                 </View>
             </Animated.View>
             <View>
-                {data.contents.map((item: any) => <View key={item.id} style={{ marginTop: 10 }}>
-                    <ItemRender data={item} thumbnail={data.header.thumbnail.contents} navigation={navigation}></ItemRender>
+                {data.contents.map((item: any, index: number) => <View key={item.id} style={{ marginTop: 10 }}>
+                    <ItemRender data={item} queue={data} index={index} thumbnail={data.header.thumbnail.contents} navigation={navigation}></ItemRender>
                 </View>)}
             </View>
             <Text style={{ color: 'rgba(255, 255, 255, 0.75)', textAlign: 'center', padding: 15 }}>{data.header.second_subtitle.text}</Text>
             {data.sections ? data.sections.map((section: any) => <>
                 <Text style={{ color: 'white', fontWeight: 600, fontSize: 22, padding: 15 }}>{section.header.title.text}</Text>
-                {section.contents.map((item: any) => <AlbumRender key={item.id} data={item} navigation={navigation}></AlbumRender>)}
+                <ScrollView horizontal={true}>
+                    {section.contents.map((item: any) => <AlbumRender key={item.id} data={item} navigation={navigation}></AlbumRender>)}
+                </ScrollView>
             </>) : <></>}
             <View style={{ height: 100 }}></View>
         </>
@@ -274,12 +225,12 @@ function Component ({ navigation, route }: any) {
     </>
 }
 
-function ItemRender ({ data, thumbnail, navigation }: { data: any, thumbnail: any, navigation: any }) {
+function ItemRender ({ data, queue, index, thumbnail, navigation }: { data: any, queue: any, index: number, thumbnail: any, navigation: any }) {
     const [isVisible, setVisible] = useState(false);
 
     return <>
         {data.item_type == 'unknown' ? <></> : <TrackModal data={data} providedThumbnails={thumbnail} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />}
-        <Pressable key={'pressable' + data.id} style={data.item_type == 'unknown' ? { opacity: 0.5 } : { }} onPress={() => { if (data.item_type != 'unknown') youtube.handlePress(data, navigation, data.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4)) }} onLongPress={() => setVisible(true)}>
+        <Pressable key={'pressable' + data.id} style={data.item_type == 'unknown' ? { opacity: 0.5 } : { }} onPress={() => { if (data.item_type != 'unknown') enqueueList(queue, index) }} onLongPress={() => setVisible(true)}>
             <View style={{ padding: 5, paddingLeft: 15, height: 60, flexDirection: "row", alignItems: "center" }}>
                 {data.index ?
                     <Text style={{ width: 30, color: 'white', fontWeight: 500, fontSize: 16, textAlign: 'center' }}>{data.index.text}</Text> : 
@@ -323,6 +274,69 @@ function AlbumRender ({ data, navigation }: { data: any, navigation: any }) {
             </View>
         </Pressable>
     </>
+}
+
+async function enqueueList (data: any, index?: number) {
+    const infoList: any[] = [];
+
+    let colors: any;
+
+    if (data.url) {
+        colors = await ImageColors.getColors(youtube.getThumbnail(data.header.thumbnail.contents, 50).url, { });
+    }
+
+    var i = 0;
+    var comp = 0;
+    data.contents.forEach(async (item: any) => {
+        if (item.item_type != 'unknown') {
+            const store = i;
+            infoList[i] = undefined;
+            if (colors) {
+                infoList[i] = {
+                    colors,
+                    track: {
+                        title: item.title,
+                        author: data.header.strapline_text_one.text,
+                        thumbnail: data.header.thumbnail.contents,
+                        duration: item.duration.seconds,
+                        id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
+                    }
+                };
+            } else {
+                ImageColors.getColors(youtube.getThumbnail(item.thumbnail, 50).url, { }).then(async color => {
+                    infoList[store] = [{
+                        colors: color,
+                        track: {
+                            title: item.title,
+                            author: item.authors.map((author: any) => author.name).join(),
+                            thumbnail: item.thumbnail.contents,
+                            duration: item.duration.seconds,
+                            id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
+                        }
+                    }];
+                    comp++;
+                    if (comp == i) {
+                        youtube.resetPlayer();
+                        youtube.player.queue = infoList;
+                        youtube.player.currentIndex = index ?? 0;
+                        youtube.player.jumpPlayer(1);
+                        youtube.player.setState(Date.now());
+                        youtube.playerControls.play();
+                    }
+                });
+            }
+            i++;
+        }
+    });
+
+    if (colors) {
+        youtube.resetPlayer();
+        youtube.player.queue = infoList;
+        youtube.player.currentIndex = index ?? 0;
+        youtube.playerControls.play();
+        youtube.player.jumpPlayer(1);
+        youtube.player.setState(Date.now());
+    }
 }
 
 export default Component;

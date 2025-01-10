@@ -4,6 +4,8 @@ import SearchSuggestionsSection from "../node_modules/youtubei.js/dist/src/parse
 import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints } from "youtubei.js";
 import ImageColors from "react-native-image-colors";
 import { PixelRatio } from 'react-native';
+import RNFS from 'react-native-fs';
+import Logger from './Logger';
 
 class YoutubeManager {
     api!: Innertube;
@@ -49,7 +51,7 @@ class YoutubeManager {
             onTrackEnd: async () => {
                 const state = await TrackPlayer.getPlaybackState();
 
-                console.log(state);
+                Logger.log(JSON.stringify(state));
 
                 if (state.state == State.Playing) {
                     if (this.player.loop == 2) {
@@ -75,14 +77,14 @@ class YoutubeManager {
                 }
             },
             play: async () => {
-                console.log('play called');
                 if (!this.player.queue[this.player.currentIndex].track.id) return;
-                console.log('function not returned');
 
-                //this.player.setState(Date.now());
+                Logger.log(`Playing video: ${this.player.queue[this.player.currentIndex].track.id}`);
 
                 const info = await this.getInfo(this.player.queue[this.player.currentIndex].track.id ?? '');
                 
+                console.log(JSON.stringify(info));
+
                 const colorData = this.player.queue[this.player.currentIndex]?.colors;
                 const colors = [colorData?.background, colorData?.primary, colorData?.secondary, colorData?.detail];
                 let color = colors[0];
@@ -109,7 +111,6 @@ class YoutubeManager {
                 
                 await TrackPlayer.seekTo(0);
                 await TrackPlayer.play();
-                console.log(await TrackPlayer.getProgress());
             },
             next: async () => {
                 if (this.player.currentIndex == this.player.queue.length - 1) {
@@ -148,7 +149,9 @@ class YoutubeManager {
                     Capability.SkipToPrevious
                 ]
             });
-        } catch (e) { console.log(e) }
+        } catch (e) { Logger.error({ error: e }); }
+
+        Logger.log("(Setup) App started up");
 
         this.api = await Innertube.create({
             cache: new UniversalCache(false),
@@ -157,6 +160,14 @@ class YoutubeManager {
 
         this.awaitCallbacks.forEach(callback => callback(0));
         this.awaitCallbacks = [];
+    }
+
+    resetPlayer() {
+        this.player.currentIndex = 0;
+        this.player.savedIndex = 0;
+        this.player.queue = [];
+        this.player.unshuffledQueue = [];
+        this.player.shuffled = false;
     }
 
     awaitInit () {
@@ -251,11 +262,13 @@ class YoutubeManager {
 
             this.player.cache.playerColor = info.colors.primary.slice(1);
 
+            this.resetPlayer();
             this.player.queue = [{
                 colors: info.colors,
                 track: {
                     title: info.track.basic_info.title,
                     author: info.track.basic_info.author,
+                    channel_id: info.track.basic_info.channel_id,
                     thumbnail: info.track.basic_info.thumbnail,
                     duration: info.track.basic_info.duration,
                     id: info.track.basic_info.id
@@ -281,6 +294,7 @@ class YoutubeManager {
                 track: {
                     title: item.title,
                     author: item.artists[0].name,
+                    channel_id: item.channel_id,
                     thumbnail: [item.thumbnail],
                     duration: item.duration.seconds,
                     id: item.id
@@ -288,6 +302,7 @@ class YoutubeManager {
             };
 
             if (!this.player.queue.length) {
+                this.resetPlayer();
                 this.player.queue = [track];
                 this.playerControls.play();
             } else if (data.endpoint.payload.queueInsertPosition == 'INSERT_AFTER_CURRENT_VIDEO') {
@@ -346,7 +361,7 @@ function handleBrowse (endpoint: any, navigation: any): void {
         case 'MUSIC_PAGE_TYPE_TRACK_CREDITS':
             navigation.push('Credits', { id: endpoint.payload.browseId });
         default:
-            console.log(endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
+            Logger.log('Unknown Endpoint: ' + endpoint.payload.browseEndpointContextSupportedConfigs.browseEndpointContextMusicConfig.pageType);
             break;
     }
 }
@@ -360,6 +375,7 @@ export interface MusicTrackInfo {
     track: {
         title?: string;
         author?: string;
+        channel_id?: string;
         thumbnail?: {
             url: string;
             height: number;
