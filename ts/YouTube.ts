@@ -1,10 +1,9 @@
 import 'event-target-polyfill';
 import TrackPlayer, { Capability, State } from "react-native-track-player";
 import SearchSuggestionsSection from "../node_modules/youtubei.js/dist/src/parser/classes/SearchSuggestionsSection";
-import Innertube, { UniversalCache, YTMusic, Helpers, Endpoints } from "youtubei.js";
-import ImageColors from "react-native-image-colors";
+import Innertube, { YTMusic, Helpers } from "youtubei.js";
 import { PixelRatio } from 'react-native';
-import RNFS from 'react-native-fs';
+import { getPalette } from '@somesoap/react-native-image-palette'
 import Logger from './Logger';
 
 class YoutubeManager {
@@ -37,7 +36,7 @@ class YoutubeManager {
             loop: 0,
             autoplay: false,
             cache: {
-                playerColor: "008947"
+                playerColor: "1c9c39"
             },
             setState: () => { console.error('Called setState without initialized PlayerShelf'); },
             jumpPlayer: () => { console.error('Called setPlayerState without initialized PlayerShelf'); }
@@ -82,24 +81,8 @@ class YoutubeManager {
                 Logger.log(`Playing video: ${this.player.queue[this.player.currentIndex].track.id}`);
 
                 const info = await this.getInfo(this.player.queue[this.player.currentIndex].track.id ?? '');
-                
-                console.log(JSON.stringify(info));
 
-                const colorData = this.player.queue[this.player.currentIndex]?.colors;
-                const colors = [colorData?.background, colorData?.primary, colorData?.secondary, colorData?.detail];
-                let color = colors[0];
-                
-                if (color) {
-                    for (var i = 1; i < colors.length; i++) {
-                        const a = getRGB(parseInt(color.slice(1), 16));
-                        const b = getRGB(parseInt(colors[i].slice(1), 16));
-                        if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
-                            color = colors[i];
-                        }
-                    }
-                }
-
-                this.player.cache.playerColor = color.slice(1);
+                this.player.cache.playerColor = this.player.queue[this.player.currentIndex]?.colors?.vibrant?.slice(1);
 
                 await TrackPlayer.setQueue([{
                     url: info.url,
@@ -153,10 +136,7 @@ class YoutubeManager {
 
         Logger.log("(Setup) App started up");
 
-        this.api = await Innertube.create({
-            cache: new UniversalCache(false),
-            generate_session_locally: true,
-        });
+        this.api = await Innertube.create();
 
         this.awaitCallbacks.forEach(callback => callback(0));
         this.awaitCallbacks = [];
@@ -190,14 +170,15 @@ class YoutubeManager {
     async getInfo (video_id: string): Promise<{ url: string, colors: any, track: YTMusic.TrackInfo }> {
         const track = await this.api.music.getInfo(video_id);
 
-        const response = await this.api.actions.execute(Endpoints.PlayerEndpoint.PATH, Endpoints.PlayerEndpoint.build({
-            video_id,
-            sts: this.api.session.player?.sts,
-            client: 'iOS'
-        }));
+        const response = await this.api.actions.execute('/player', {
+            videoId: video_id,
+            client: 'iOS',
+        });
+
+        console.log(response.data?.streamingData?.hlsManifestUrl);
 
         //@ts-ignore
-        return { url: response.data?.streamingData?.hlsManifestUrl, colors: await ImageColors.getColors(this.getThumbnail(track.basic_info.thumbnail, 50).url, { }), track };
+        return { url: response.data?.streamingData?.hlsManifestUrl, colors: await getPalette(this.getThumbnail(track.basic_info.thumbnail, 50).url), track };
     }
 
     async getArtist (artist_id: string): Promise<YTMusic.Artist> {
@@ -213,18 +194,18 @@ class YoutubeManager {
     }
 
     async getCredits (endpoint: string) {
-        return await this.api.actions.execute('/browse', Endpoints.BrowseEndpoint.build({
+        return await this.api.actions.execute('/browse', {
             browse_id: endpoint,
-            client: 'YTMUSIC'
-        }));
+            client: 'YTMUSIC',
+        });
     }
 
     async getHome (updateBackground: boolean): Promise<YTMusic.HomeFeed> {
         await this.awaitInit();
-        const res = await this.api.actions.execute('/browse', Endpoints.BrowseEndpoint.build({
+        const res = await this.api.actions.execute('/browse', {
             browse_id: 'FEmusic_home',
             client: 'YTMUSIC'
-        }));
+        });
 
         // TODO: Add code for caching the image for offline functionality
         if (updateBackground) this.backgroundUrl = res.data.background?.musicThumbnailRenderer.thumbnail.thumbnails[0].url;
@@ -243,24 +224,11 @@ class YoutubeManager {
 
     async handlePress (data: any, navigation: any, id_overwrite?: any) {
         const endpoint = data.endpoint ?? data.overlay?.content?.endpoint ?? data.on_tap;
-    
+
         if (endpoint.metadata.api_url == '/player') {
             const info = await this.getInfo(id_overwrite ?? endpoint.payload.videoId);
         
-            const colors = [info.colors?.background, info.colors?.primary, info.colors?.secondary, info.colors?.detail];
-            let color = colors[0];
-            
-            if (color) {
-                for (var i = 1; i < colors.length; i++) {
-                    const a = getRGB(parseInt(color.slice(1), 16));
-                    const b = getRGB(parseInt(colors[i].slice(1), 16));
-                    if ((b.r + b.g + b.b) / 3 < (a.r + a.g + a.b) / 3) {
-                        color = colors[i];
-                    }
-                }
-            }
-
-            this.player.cache.playerColor = info.colors.primary.slice(1);
+            this.player.cache.playerColor = this.player.queue[this.player.currentIndex]?.colors?.vibrant?.slice(1);
 
             this.resetPlayer();
             this.player.queue = [{
@@ -290,7 +258,7 @@ class YoutubeManager {
             }
         } else if (data.type == 'MenuServiceItem') {
             var track: MusicTrackInfo = {
-                colors: await ImageColors.getColors(this.getThumbnail(item.thumbnail, 50).url, { }),
+                colors: await getPalette(this.getThumbnail(item.thumbnail, 50).url),
                 track: {
                     title: item.title,
                     author: item.artists[0].name,

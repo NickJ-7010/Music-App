@@ -1,7 +1,7 @@
 import React from "react";
 import { ColorValue } from "react-native";
 import { Path, Svg } from "react-native-svg";
-import Logger from "./Logger";
+import Logger from "../Logger";
 
 function Component ({ icon, width, fill = "#ffffff" }: { icon: String, width: number, fill?: ColorValue }) {
     var path;

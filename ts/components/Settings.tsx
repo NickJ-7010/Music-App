@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import TabTemplate from './TabTemplate';
 import TopBar from './TopBar';
-import youtube from './YouTube';
+import youtube from '../YouTube';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

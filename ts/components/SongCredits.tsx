@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Pressable, View, Image, Text } from 'react-native';
-import youtube from './YouTube';
+import youtube from '../YouTube';
 import Animated, { useAnimatedRef, useAnimatedStyle, useScrollViewOffset, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';

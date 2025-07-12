@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import TabTemplate from './TabTemplate';
 import TopBar from './TopBar';
-import youtube from './YouTube';
+import youtube from '../YouTube';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,9 +19,7 @@ function Content ({ navigation }: any) {
     const safeAreaInsets = useSafeAreaInsets();
 
     if (refreshing) {
-        youtube.getHome(true).then(data => {
-            setRefreshing(false);
-        });
+        setRefreshing(false);
     }
 
     return (
@@ -39,7 +37,7 @@ function Content ({ navigation }: any) {
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(true)} />
                     }>
-                    <Text style={{ color: "#fff", fontSize: 20 }}>Home Screen</Text>
+                    <Text style={{ color: "#fff", fontSize: 20 }}>Library Screen</Text>
                 </ScrollView>
             </SafeAreaView>
         </View>

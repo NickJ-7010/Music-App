@@ -10,7 +10,7 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import youtube from './YouTube'
+import youtube from '../YouTube'
 import Svg, { Path } from 'react-native-svg';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import LinearGradient from 'react-native-linear-gradient';
@@ -63,7 +63,7 @@ function Component ({ navigation }: any) {
     } else if (text.length) {
         if (!filter.length) {
             content =
-            <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} screenOptions={{ swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.15)", borderBottomWidth: 1 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+            <Tab.Navigator screenOptions={{ sceneStyle: { backgroundColor: "transparent" }, swipeEnabled: false, tabBarStyle: { backgroundColor: "transparent", paddingTop: 1, borderBottomColor: "rgba(255, 255, 255, 0.15)", borderBottomWidth: 1 }, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
                 <Tab.Screen name="YT MUSIC" children={()=><SearchResults results={results} applyFilter={setFilter} navigation={navigation} />} />
                 <Tab.Screen name="LIBRARY" children={()=><LibraryResults text={text} />} />
             </Tab.Navigator>

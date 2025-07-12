@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Image, Text, Pressable } from "react-native";
 import Modal from 'react-native-modal';
 import IconRender from './IconRender';
-import youtube from './YouTube'
+import youtube from '../YouTube'
 import Svg, { Path } from 'react-native-svg';
 
 function Component ({ data, providedThumbnails, itemList, isVisible, setVisible, navigation }: { data: any, providedThumbnails?: any, itemList?: any, isVisible: boolean, setVisible: React.Dispatch<React.SetStateAction<boolean>>, navigation: any }) {

@@ -3,7 +3,7 @@ import { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
 import { ParamListBase, Route, TabNavigationState } from "@react-navigation/native";
 import { Animated, Easing, I18nManager, Platform, Text, View, useAnimatedValue } from "react-native";
 import { TabBar } from "react-native-tab-view";
-import { GetTabWidth, Props } from "react-native-tab-view/lib/typescript/src/TabBarIndicator";
+import { GetTabWidth, Props } from "../../node_modules/react-native-tab-view/lib/typescript/src/TabBarIndicator";
 import ReAnimated from "react-native-reanimated";
 
 export function TabBarTop({

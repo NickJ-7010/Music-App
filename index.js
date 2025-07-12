@@ -2,7 +2,7 @@
  * @format
  */
 import 'react-native-gesture-handler';
-import { AppRegistry, LogBox } from 'react-native';
+import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
 import TrackPlayer from 'react-native-track-player';
@@ -12,6 +12,7 @@ import 'web-streams-polyfill';
 import 'text-encoding-polyfill'
 import 'react-native-url-polyfill/auto';
 import {decode, encode} from 'base-64';
+import db from './ts/Database';
 
 if (!global.btoa) {
     global.btoa = encode;
@@ -39,6 +40,8 @@ class CustomEvent extends Event {
 }
 
 global.CustomEvent = CustomEvent;
+
+db.createTables();
 
 AppRegistry.registerComponent(appName, () => App);
 TrackPlayer.registerPlaybackService(() => require('./ts/AudioPlayer'));

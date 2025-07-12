@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, Dimensions, Text, Image, ScrollView } from 'react-native';
-import youtube from './YouTube';
+import youtube from '../YouTube';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

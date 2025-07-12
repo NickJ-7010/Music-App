@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { Dimensions, Pressable, View, Image, Text, ScrollView } from 'react-native';
-import youtube from './YouTube';
+import youtube from '../YouTube';
 import Animated, { useAnimatedRef, useAnimatedStyle, useScrollViewOffset, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -8,8 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import TrackModal from './TrackModal';
 import IconRender from './IconRender';
 import TrackPlayer from 'react-native-track-player';
-import ImageColors from "react-native-image-colors";
-import YouTube from './YouTube';
+import { getPalette } from '@somesoap/react-native-image-palette';
 
 const { width } = Dimensions.get('screen');
 
@@ -83,8 +82,8 @@ function Component ({ navigation, route }: any) {
 
     if (data) {
         content = <>
-            <Animated.Text numberOfLines={1} style={[{ fontWeight: 500 }, headerTextStyle]}>{data?.header?.title?.text}</Animated.Text>
-            <Animated.View onLayout={event => { headerHeight.value = event.nativeEvent.layout.height; }} style={headingStyle}>
+            <Animated.Text key={1} numberOfLines={1} style={[{ fontWeight: 500 }, headerTextStyle]}>{data?.header?.title?.text}</Animated.Text>
+            <Animated.View key={2} onLayout={event => { headerHeight.value = event.nativeEvent.layout.height; }} style={headingStyle}>
                 {data.header.strapline_thumbnail ? <Pressable style={{ alignItems: 'center' }} onPress={() => { youtube.handlePress(data.header.strapline_text_one, navigation) }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Image style={{ height: 14, aspectRatio: 1, borderRadius: 50, marginRight: 5 }} source={{ uri: youtube.getThumbnail(data.header.strapline_thumbnail.contents, 14).url }} />
@@ -156,19 +155,19 @@ function Component ({ navigation, route }: any) {
                     </Pressable>
                 </View>
             </Animated.View>
-            <View>
+            <View key={3}>
                 {data.contents.map((item: any, index: number) => <View key={item.id} style={{ marginTop: 10 }}>
                     <ItemRender data={item} queue={data} index={index} thumbnail={data.header.thumbnail.contents} navigation={navigation}></ItemRender>
                 </View>)}
             </View>
-            <Text style={{ color: 'rgba(255, 255, 255, 0.75)', textAlign: 'center', padding: 15 }}>{data.header.second_subtitle.text}</Text>
-            {data.sections ? data.sections.map((section: any) => <>
+            <Text key={4} style={{ color: 'rgba(255, 255, 255, 0.75)', textAlign: 'center', padding: 15 }}>{data.header.second_subtitle.text}</Text>
+            {data.sections ? data.sections.map((section: any, index: number) => <Fragment key={index}>
                 <Text style={{ color: 'white', fontWeight: 600, fontSize: 22, padding: 15 }}>{section.header.title.text}</Text>
                 <ScrollView horizontal={true}>
                     {section.contents.map((item: any) => <AlbumRender key={item.id} data={item} navigation={navigation}></AlbumRender>)}
                 </ScrollView>
-            </>) : <></>}
-            <View style={{ height: 100 }}></View>
+            </Fragment>) : <></>}
+            <View key={5} style={{ height: 100 }}></View>
         </>
     }
 
@@ -265,7 +264,7 @@ function AlbumRender ({ data, navigation }: { data: any, navigation: any }) {
         <TrackModal data={data} isVisible={isVisible} setVisible={setVisible} navigation={navigation} />
         <Pressable key={'pressable' + data.id} onPress={() => youtube.handlePress(data, navigation)} onLongPress={() => setVisible(true)}>
             <View style={{ margin: 5, marginLeft: 15, flexDirection: "column", alignItems: "flex-start", width: 150 }}>
-                <Image width={150} height={150} style={{ borderRadius: 5, marginBottom: 5 }} source={{ uri: YouTube.getThumbnail(data.thumbnail, 150).url }} />
+                <Image width={150} height={150} style={{ borderRadius: 5, marginBottom: 5 }} source={{ uri: youtube.getThumbnail(data.thumbnail, 150).url }} />
                 <Text numberOfLines={2} style={{ color: "#ffffff", fontSize: 16, fontWeight: 600 }}>{data.title.text}</Text>
                 <View style={{ flexDirection: 'row' }}>
                     {data.badges?.length ? data.badges.map((badge: any) => <View style={{ paddingTop: 2, marginRight: 4 }}><IconRender icon={badge.icon_type} fill={"rgba(255, 255, 255, 0.5)"} width={16}></IconRender></View>) : <></>}
@@ -282,7 +281,7 @@ async function enqueueList (data: any, index?: number) {
     let colors: any;
 
     if (data.url) {
-        colors = await ImageColors.getColors(youtube.getThumbnail(data.header.thumbnail.contents, 50).url, { });
+        colors = await getPalette(youtube.getThumbnail(data.header.thumbnail.contents, 50).url);
     }
 
     var i = 0;
@@ -303,27 +302,25 @@ async function enqueueList (data: any, index?: number) {
                     }
                 };
             } else {
-                ImageColors.getColors(youtube.getThumbnail(item.thumbnail, 50).url, { }).then(async color => {
-                    infoList[store] = [{
-                        colors: color,
-                        track: {
-                            title: item.title,
-                            author: item.authors.map((author: any) => author.name).join(),
-                            thumbnail: item.thumbnail.contents,
-                            duration: item.duration.seconds,
-                            id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
-                        }
-                    }];
-                    comp++;
-                    if (comp == i) {
-                        youtube.resetPlayer();
-                        youtube.player.queue = infoList;
-                        youtube.player.currentIndex = index ?? 0;
-                        youtube.player.jumpPlayer(1);
-                        youtube.player.setState(Date.now());
-                        youtube.playerControls.play();
+                infoList[store] = [{
+                    colors: await getPalette(youtube.getThumbnail(item.thumbnail, 50).url),
+                    track: {
+                        title: item.title,
+                        author: item.authors.map((author: any) => author.name).join(),
+                        thumbnail: item.thumbnail.contents,
+                        duration: item.duration.seconds,
+                        id: item.menu?.items?.find((item: any) => item.endpoint?.payload?.browseId?.startsWith('MPTC'))?.endpoint?.payload?.browseId?.slice(4) ?? item.id
                     }
-                });
+                }];
+                comp++;
+                if (comp == i) {
+                    youtube.resetPlayer();
+                    youtube.player.queue = infoList;
+                    youtube.player.currentIndex = index ?? 0;
+                    youtube.player.jumpPlayer(1);
+                    youtube.player.setState(Date.now());
+                    youtube.playerControls.play();
+                }
             }
             i++;
         }

@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { View, Text, Pressable, Dimensions, Image, ScrollView } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useSharedValue, withSpring, useAnimatedStyle, runOnJS, useDerivedValue, useAnimatedProps } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
-import { NavigationContainer } from "@react-navigation/native";
+import Svg, { Circle, Defs, Mask, Path, Rect } from "react-native-svg";
+import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import { TabBarTop } from "./AnimatedTabs";
-import youtube, { MusicTrackInfo } from "./YouTube";
+import youtube, { MusicTrackInfo } from "../YouTube";
 import TrackPlayer, { usePlaybackState, useProgress, State } from "react-native-track-player";
 import * as MCU from "@material/material-color-utilities";
 import LinearGradient from "react-native-linear-gradient";
@@ -83,7 +83,7 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
     }));
 
     const shelfStyle = useAnimatedStyle(() => ({
-        backgroundColor: offset.value / height <= 1.01 ? "transparent" : `rgb(${interpolate(palette[1].r, palette[2].r, (offset.value - height) / height)}, ${interpolate(palette[1].g, palette[2].g, (offset.value - height) / height)}, ${interpolate(palette[1].b, palette[2].b, (offset.value - height) / height)})`,
+        backgroundColor: offset.value / height <= 1.01 ? "transparent" : `rgba(0, 0, 0, 0.25)`,
         transform: [{ translateY: offset.value / height > 1 ? - (height - 65) / height * (offset.value - height) + 10 : 10 }],
         width: "100%",
         height: height - 110,
@@ -137,7 +137,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
         position: "absolute",
         height: height,
         width: width,
-        opacity: Math.min(offset.value / height, 1),
+        opacity: 1,
+        //opacity: Math.min(offset.value / height, 1),
     }));
 
     const dragIndicator = useAnimatedStyle(() => ({
@@ -156,12 +157,8 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                 <View>
                     <Animated.View style={style}>
                         <Animated.View style={backGradient}>
-                            <LinearGradient
-                                start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                                locations={[0.25, 1]}
-                                colors={[`rgba(${palette[0].r}, ${palette[0].g}, ${palette[0].b}, 1)`, `rgba(${palette[1].r}, ${palette[1].g}, ${palette[1].b}, 1)`]}
-                                style={{ position: "absolute", top: 0, left: 0, height: height, width: width }}>
-                            </LinearGradient>
+                            <Image style={{ width: "100%", height: "100%", backgroundColor: 'rgba(255, 255, 255, 0.1)', resizeMode: "stretch" }} blurRadius={200} source={{ uri: thumbnail?.url }} />
+                            <View style={{ position: "absolute", width: "100%", height: "100%", backgroundColor: "rgba(0, 0, 0, 0.5)" }}></View>
                         </Animated.View>
                         <Pressable onPress={() => { if (state.value != 1) { jumpPlayer(1) } }}>
                             <Animated.View style={minControlStyle}>
@@ -281,13 +278,18 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                                             await TrackPlayer.play();
                                         }
                                     }
-                                }} style={{ height: 75, width: 75, borderRadius: 50, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" }}>
+                                }} style={{ height: 75, width: 75, borderRadius: 50 }}>
                                     <Svg
-                                        width={playerState.state == State.Playing ? 50 : 35}
-                                        height={playerState.state == State.Playing ? 50 : 35}
-                                        viewBox={playerState.state == State.Playing ? "0 0 24 24" : "0 0 100 100"}
-                                        fill={`#${tones.tone(5).toString(16).slice(2)}`}>
-                                        <Path d={playerState.state == State.Playing ? "M9 19H7V5h2Zm8-14h-2v14h2Z" : "m20 5 70 45-70 45z"} />
+                                        width={75}
+                                        height={75}
+                                        viewBox={playerState.state == State.Playing ? "-6 -6 36 36" : "-50 -50 200 200"}>
+                                        <Defs>
+                                            <Mask width={playerState.state == State.Playing ? 50 : 35} height={playerState.state == State.Playing ? 50 : 35} id="playButton">
+                                                <Rect x={-50} y={-50} width={250} height={250} fill="#ffffff" />
+                                                <Path fill={"#000000"} d={playerState.state == State.Playing ? "M9 19H7V5h2Zm8-14h-2v14h2Z" : "m20 5 70 45-70 45z"} />
+                                            </Mask>
+                                        </Defs>
+                                        {playerState.state == State.Playing ? <Circle cx="12" cy="12" r="18" fill="#ffffff" mask="url(#playButton)" /> : <Circle cx="50" cy="50" r="100" fill="#ffffff" mask="url(#playButton)" />}
                                     </Svg>
                                 </Pressable>
                                 <Pressable onPress={() => youtube.playerControls.next()} style={{ height: 50, width: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" }}>
@@ -312,13 +314,15 @@ function Component ({ bottomTabBar }: PlayerShelfProps): React.JSX.Element {
                         </Animated.View>
                         <Animated.View style={shelfStyle}>
                             <Animated.View style={dragIndicator}><View style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", width: 35, height: 5, borderRadius: 5 }}></View></Animated.View> 
-                            <NavigationContainer independent={true}>
-                                <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ swipeEnabled: false, onPress: () => jumpPlayer(2), indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
-                                    <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent palette={palette} /></Animated.View>} />
-                                    <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
-                                    <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
-                                </Tab.Navigator>
-                            </NavigationContainer>
+                            <NavigationIndependentTree>
+                                <NavigationContainer>
+                                    <Tab.Navigator sceneContainerStyle={{ backgroundColor: "transparent" }} tabBar={(props: any) => <Animated.View style={topTabsStyle}><TabBarTop {...props} /></Animated.View>} initialRouteName="UP NEXT" screenOptions={{ sceneStyle: { backgroundColor: "transparent" }, swipeEnabled: false, onPress: () => jumpPlayer(2), indicatorStyle: indicatorStyle, tabBarIndicatorContainerStyle: { transform: [{ translateY: 1 }] }, tabBarIndicatorStyle: { backgroundColor: "#ffffff" }, tabBarLabelStyle: { fontSize: 14, fontWeight: 600 }, tabBarActiveTintColor: "#ffffff", tabBarInactiveTintColor: "rgba(255, 255, 255, 0.6)" }}>
+                                        <Tab.Screen name="UP NEXT" children={() =><Animated.View style={shelfContentStyle}><UpNextComponent palette={palette} /></Animated.View>} />
+                                        <Tab.Screen name="LYRICS" children={()=><Animated.View style={shelfContentStyle}><LyricsComponent /></Animated.View>} />
+                                        <Tab.Screen name="RELATED" children={()=><Animated.View style={shelfContentStyle}><RelatedComponent /></Animated.View>} />
+                                    </Tab.Navigator>
+                                </NavigationContainer>
+                            </NavigationIndependentTree>
                         </Animated.View>
                     </Animated.View>
                 </View>
@@ -420,7 +424,7 @@ function UpNextComponent ({ palette }: { palette: any[] }) {
         return <Pressable onPress={() => {
             youtube.player.currentIndex = getIndex() ?? 0;
             youtube.playerControls.play();
-        }} style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? '#' + palette[3].r.toString(16).padStart(2, '0') + palette[3].g.toString(16).padStart(2, '0') + palette[3].b.toString(16).padStart(2, '0') : 'transparent' }}>
+        }} style={{ padding: 10, paddingLeft: 15, height: 70, flexDirection: "row", alignItems: "center", backgroundColor: youtube.player.currentIndex == getIndex() ? "rgba(255, 255, 255, 0.05)" : 'transparent' }}>
             { /* @ts-ignore */ }
             <Image width={50} height={item.track.thumbnail[0].height / item.track.thumbnail[0].width * 50} style={{ borderRadius: item.item_type == 'artist' ? 50 : 3 }} source={{ uri: youtube.getThumbnail(item.track.thumbnail, 50).url }} />
             <View style={{ marginLeft: 10, flexGrow: 1, width: 0 }}>
